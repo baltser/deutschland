@@ -11,6 +11,9 @@ jobs:
         os: [ubuntu-latest]
         node: [22]
 
+    env:
+      DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -26,12 +29,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
-
-      - name: Generate Prisma Client
-        run: pnpm exec prisma generate
-
-      - name: Prepare Nuxt
-        run: pnpm exec nuxi prepare
 
       - name: Lint
         run: pnpm run lint
