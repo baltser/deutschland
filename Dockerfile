@@ -1,0 +1,30 @@
+FROM node:22-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
+FROM base AS build
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml ./
+
+# Устанавливаем зависимости БЕЗ автоматического запуска postinstall
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+COPY . .
+
+# Генерируем типы Prisma и подготовку Nuxt
+RUN pnpm exec prisma generate
+RUN pnpm exec nuxi prepare
+RUN pnpm run build
+
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOST=0.0.0.0
+
+COPY --from=build /app/.output ./.output
+
+EXPOSE 3000
+CMD ["node", ".output/server/index.mjs"]
