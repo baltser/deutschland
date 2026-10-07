@@ -6,14 +6,19 @@ RUN corepack enable
 FROM base AS build
 WORKDIR /app
 
+# Копируем файлы зависимостей
 COPY package.json pnpm-lock.yaml ./
 
-# Устанавливаем зависимости БЕЗ автоматического запуска postinstall
+# Устанавливаем зависимости без автоматического запуска postinstall
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
+# Копируем весь исходный код проекта
 COPY . .
 
-# Генерируем типы Prisma и подготовку Nuxt
+# Фиктивная переменная для генерации типов Prisma на этапе сборки
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+
+# Генерируем типы Prisma, подготавливаем Nuxt и собираем проект
 RUN pnpm exec prisma generate
 RUN pnpm exec nuxi prepare
 RUN pnpm run build
