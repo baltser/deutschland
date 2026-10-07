@@ -6,7 +6,7 @@ useSeoMeta({
 
 // Подключаем управление сессией
 const { fetch: refreshSession } = useUserSession()
-
+const toast = useToast()
 // Состояние формы
 const state = reactive({
   name: '',
@@ -47,10 +47,14 @@ async function onSubmit() {
 
     // 3. Перенаправляем на главную страницу
     await navigateTo('/')
-  } catch (error: unknown) {
-    // Извлекаем сообщение об ошибке, переданное с сервера (throw createError)
-    errorMessage.value = error.data?.statusMessage || error.message || 'Произошла ошибка при регистрации'
-  } finally {
+  } catch (err: unknown) {
+    const fetchError = err as { data?: { statusMessage?: string; message?: string } }
+    toast.add({
+      title: 'Ошибка',
+      description: fetchError.data?.statusMessage || fetchError.data?.message || 'Ошибка регистрации',
+      color: 'error',
+    })
+  }finally {
     isLoading.value = false
   }
 }

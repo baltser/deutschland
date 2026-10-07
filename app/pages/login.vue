@@ -5,6 +5,7 @@ useSeoMeta({
 })
 
 const { fetch: refreshSession } = useUserSession()
+const toast = useToast()
 
 const state = reactive({
   email: '',
@@ -33,8 +34,16 @@ async function onSubmit() {
 
     // Перенаправляем на главную
     await navigateTo('/')
-  } catch (error: unknown) {
-    errorMessage.value = error.data?.statusMessage || error.message || 'Ошибка авторизации'
+  } catch (err: unknown) {
+    const fetchError = err as { data?: { statusMessage?: string; message?: string } }
+    const msg = fetchError.data?.statusMessage || fetchError.data?.message || 'Ошибка входа'
+
+    errorMessage.value = msg
+    toast.add({
+      title: 'Ошибка',
+      description: msg,
+      color: 'error',
+    })
   } finally {
     isLoading.value = false
   }

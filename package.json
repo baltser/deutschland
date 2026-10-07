@@ -11,7 +11,7 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
+    "postinstall": "prisma generate && nuxt prepare",
     "lint": "nuxi prepare && eslint .",
     "typecheck": "nuxt typecheck"
   },
