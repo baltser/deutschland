@@ -6,17 +6,17 @@ RUN corepack enable
 FROM base AS build
 WORKDIR /app
 
-# Копируем файлы зависимостей
+# Передаем тестовую переменную DATABASE_URL для Prisma на этапе сборки
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+
+# Копируем манифесты зависимостей
 COPY package.json pnpm-lock.yaml ./
 
-# Устанавливаем зависимости без автоматического запуска postinstall
+# Устанавливаем зависимости без запуска скриптов postinstall
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Копируем весь исходный код проекта
+# Копируем исходный код проекта
 COPY . .
-
-# Фиктивная переменная для генерации типов Prisma на этапе сборки
-ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 
 # Генерируем типы Prisma, подготавливаем Nuxt и собираем проект
 RUN pnpm exec prisma generate
