@@ -47,7 +47,7 @@ async function onSubmit() {
 
     // 3. Перенаправляем на главную страницу
     await navigateTo('/')
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Извлекаем сообщение об ошибке, переданное с сервера (throw createError)
     errorMessage.value = error.data?.statusMessage || error.message || 'Произошла ошибка при регистрации'
   } finally {

@@ -33,7 +33,7 @@ async function onSubmit() {
 
     // Перенаправляем на главную
     await navigateTo('/')
-  } catch (error: any) {
+  } catch (error: unknown) {
     errorMessage.value = error.data?.statusMessage || error.message || 'Ошибка авторизации'
   } finally {
     isLoading.value = false

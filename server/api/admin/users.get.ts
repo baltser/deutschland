@@ -1,4 +1,4 @@
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (_event) => {
   // 1. Проверяем, что пользователь авторизован
   // const session = await requireUserSession(event)
 

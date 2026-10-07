@@ -11,7 +11,8 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "preview": "nuxt preview",
-    "lint": "eslint .",
+    "postinstall": "nuxt prepare",
+    "lint": "nuxi prepare && eslint .",
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {

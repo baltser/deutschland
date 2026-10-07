@@ -2,9 +2,8 @@
 definePageMeta({
   middleware: [
     async () => {
-      const { loggedIn, user } = useUserSession()
+      const { loggedIn } = useUserSession()
       if (!loggedIn.value) return navigateTo('/login')
-      // if (user.value?.rule_name !== 'admin') return navigateTo('/')
     },
   ],
 })
@@ -31,7 +30,7 @@ const roleOptions = [
   { label: 'Администратор (admin)', value: 'admin' },
 ]
 
-// Клике по строке открывает модалку
+// Клик по строке открывает модалку
 function onUserClick(user: UserItem) {
   selectedUser.value = user
   selectedRole.value = user.ruleName
@@ -57,10 +56,11 @@ async function saveRole() {
 
     isModalOpen.value = false
     await refresh()
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const fetchError = err as { data?: { statusMessage?: string } }
     toast.add({
       title: 'Ошибка',
-      description: err.data?.statusMessage || 'Не удалось обновить роль',
+      description: fetchError.data?.statusMessage || 'Не удалось обновить роль',
       color: 'error',
     })
   } finally {
@@ -89,7 +89,7 @@ async function saveRole() {
         class="mb-6"
       />
 
-      <!-- Чистая таблица -->
+      <!-- Таблица -->
       <div v-else class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
