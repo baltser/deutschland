@@ -21,6 +21,14 @@ export default defineNuxtConfig({
       cookie: {
         secure: process.env.NODE_ENV === 'production' && process.env.NUXT_SESSION_SECURE === 'true' // false для HTTP
       }
+    },
+    minio: {
+      endpoint: process.env.NUXT_MINIO_ENDPOINT || 'localhost',
+      port: Number(process.env.NUXT_MINIO_PORT) || 9000,
+      useSSL: process.env.NUXT_MINIO_USE_SSL === 'true',
+      accessKey: process.env.NUXT_MINIO_ACCESS_KEY || 'admin',
+      secretKey: process.env.NUXT_MINIO_SECRET_KEY || 'password12345',
+      bucket: process.env.NUXT_MINIO_BUCKET || 'dnz-uploads'
     }
   },
 
