@@ -22,7 +22,7 @@ const features: Feature[] = [
     id: 'addres_domofon',
     title: 'Адреса. Домофоны',
     description: 'Доступ для монтажников к домофонам.',
-    icon: 'i-lucide-keypad',
+    icon: 'i-lucide-dialpad',
     to: '/',
     badge: 'Новое',
     color: 'primary'

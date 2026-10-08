@@ -15,6 +15,14 @@ export default defineNuxtConfig({
   // routeRules: {
   //   '/': { prerender: true }
   // },
+  runtimeConfig: {
+    session: {
+      maxAge: 60 * 60 * 24 * 7,
+      cookie: {
+        secure: process.env.NODE_ENV === 'production' && process.env.NUXT_SESSION_SECURE === 'true' // false для HTTP
+      }
+    }
+  },
 
   compatibilityDate: '2026-06-30'
 
