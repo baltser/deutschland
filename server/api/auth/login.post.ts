@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 
 const bodySchema = z.object({
-  email: z.string().email('Некорректный формат email'),
+  email: z.email('Некорректный формат email'),
   password: z.string().min(1, 'Пароль обязателен'),
 })
 

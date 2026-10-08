@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 const bodySchema = z.object({
   name: z.string().min(1, 'Имя обязательно'),
-  email: z.string().email('Некорректный формат email'),
+  email: z.email('Некорректный формат email'),
   password: z.string().min(6, 'Пароль должен быть не менее 6 символов'),
 })
 
