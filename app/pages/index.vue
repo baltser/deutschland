@@ -17,13 +17,12 @@ interface Feature {
   disabled?: boolean
 }
 
-// Список функций системы
 const features: Feature[] = [
   {
-    id: 'analytics',
-    title: 'Аналитика и отчёты',
-    description: 'Отслеживание ключевых показателей системы, визуализация данных и выгрузка отчётов.',
-    icon: 'i-lucide-bar-chart-3',
+    id: 'addres_domofon',
+    title: 'Адреса. Домофоны',
+    description: 'Доступ для монтажников к домофонам.',
+    icon: 'i-lucide-keypad',
     to: '/',
     badge: 'Новое',
     color: 'primary'
@@ -32,14 +31,14 @@ const features: Feature[] = [
     id: 'users',
     title: 'Управление пользователями',
     description: 'Настройка ролей, прав доступа и просмотр активности участников проекта.',
-    icon: 'i-lucide-users',
+    icon: 'i-lucide-user-cog',
     to: '/'
   },
   {
-    id: 'integrations',
+    id: 'dahua_kamera',
     title: 'Интеграции и API',
-    description: 'Подключение внешних сервисов, настройка Webhook и управление API-ключами.',
-    icon: 'i-lucide-plug',
+    description: 'Подключение к камерам фирмы Dahua.',
+    icon: 'i-lucide-cctv',
     to: '/',
     badge: 'Beta',
     color: 'warning'
@@ -48,27 +47,28 @@ const features: Feature[] = [
     id: 'logs',
     title: 'Журнал событий',
     description: 'Просмотр системных логов, истории изменений и уведомлений о сбоях.',
-    icon: 'i-lucide-scroll-text',
+    icon: 'i-lucide-logs',
     to: '/'
   },
   {
     id: 'settings',
     title: 'Системные настройки',
     description: 'Конфигурация параметров приложения, локализации и интерфейса.',
-    icon: 'i-lucide-settings',
+    icon: 'i-lucide-settings-2',
     to: '/settings'
   },
   {
-    id: 'backup',
-    title: 'Резервные копии',
-    description: 'Автоматическое создание бэкапов и восстановление данных из архивов.',
-    icon: 'i-lucide-database-backup',
+    id: 'add_number',
+    title: 'Добавление номеров',
+    description: 'Добавление номеров на камеры.',
+    icon: 'i-lucide-hash',
     to: '/',
     disabled: true,
     badge: 'В разработке',
     color: 'neutral'
   }
 ]
+
 </script>
 
 <template>
