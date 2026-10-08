@@ -56,9 +56,10 @@ async function onSubmit() {
       <!-- Заголовок -->
       <template #header>
         <div class="text-center space-y-1 py-2">
-          <div class="inline-flex p-3 rounded-full bg-primary-500/10 text-primary mb-2">
-            <UIcon name="i-lucide-log-in" class="w-6 h-6" />
-          </div>
+<!--          <div class="inline-flex p-3 rounded-full bg-primary-500/10 text-primary mb-2">-->
+<!--            <UIcon name="i-lucide-log-in" class="w-6 h-6" />-->
+<!--          </div>-->
+            <AppLogo/>
           <h1 class="text-2xl font-bold tracking-tight">
             Вход в систему
           </h1>

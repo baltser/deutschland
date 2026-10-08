@@ -28,11 +28,11 @@ async function onLogout() {
 <template>
   <header class="sticky top-0 z-40 bg-(--ui-bg)/80 backdrop-blur border-b border-(--ui-border)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-      <NuxtLink to="/" class="font-bold text-xl tracking-tight flex items-center gap-2 hover:opacity-80 transition-opacity">
-        <UIcon name="i-lucide-shield-check" class="w-6 h-6 text-primary" />
-        <span>DNZ</span>
-      </NuxtLink>
-
+<!--      <NuxtLink to="/" class="font-bold text-xl tracking-tight flex items-center gap-2 hover:opacity-80 transition-opacity">-->
+<!--        <UIcon name="i-lucide-shield-check" class="w-6 h-6 text-primary" />-->
+<!--        <span>DNZ</span>-->
+<!--      </NuxtLink>-->
+        <AppLogo/>
       <nav class="hidden md:flex items-center gap-1">
         <UNavigationMenu :items="navLinks" />
       </nav>
