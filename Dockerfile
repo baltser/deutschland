@@ -6,7 +6,6 @@ RUN corepack enable
 FROM base AS build
 WORKDIR /app
 
-# Передаем тестовую переменную DATABASE_URL для Prisma на этапе сборки
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 
 # Копируем манифесты зависимостей
