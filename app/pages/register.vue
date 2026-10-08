@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import { ref, reactive, onUnmounted } from 'vue'
+
 useSeoMeta({
   title: 'Регистрация',
   description: 'Создание нового аккаунта в системе DNZ'
 })
 
-// Подключаем управление сессией
 const { fetch: refreshSession } = useUserSession()
 const toast = useToast()
+
 // Состояние формы
 const state = reactive({
   name: '',
@@ -15,15 +17,75 @@ const state = reactive({
   confirmPassword: ''
 })
 
+// Состояние аватара
+const avatarFile = ref<File | null>(null)
+const avatarPreview = ref<string>('')
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
 // Состояние загрузки и ошибки
 const isLoading = ref(false)
 const errorMessage = ref('')
+
+// Клиентская выборка и валидация аватара
+function triggerAvatarSelect() {
+  fileInputRef.value?.click()
+}
+
+function handleAvatarChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    toast.add({
+      title: 'Недопустимый формат',
+      description: 'Выберите изображение в формате JPG, PNG или WEBP',
+      color: 'error'
+    })
+    return
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    toast.add({
+      title: 'Файл слишком большой',
+      description: 'Максимальный размер аватара — 2 МБ',
+      color: 'error'
+    })
+    return
+  }
+
+  // Очищаем старое превью при наличии
+  if (avatarPreview.value) {
+    URL.revokeObjectURL(avatarPreview.value)
+  }
+
+  avatarFile.value = file
+  avatarPreview.value = URL.createObjectURL(file)
+}
+
+function removeAvatar() {
+  if (avatarPreview.value) {
+    URL.revokeObjectURL(avatarPreview.value)
+  }
+  avatarFile.value = null
+  avatarPreview.value = ''
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
+}
+
+// Освобождаем память при уходе со страницы
+onUnmounted(() => {
+  if (avatarPreview.value) {
+    URL.revokeObjectURL(avatarPreview.value)
+  }
+})
 
 // Обработчик отправки формы
 async function onSubmit() {
   errorMessage.value = ''
 
-  // Валидация совпадения паролей
   if (state.password !== state.confirmPassword) {
     errorMessage.value = 'Пароли не совпадают'
     return
@@ -32,29 +94,35 @@ async function onSubmit() {
   isLoading.value = true
 
   try {
-    // 1. Отправляем запрос на серверный эндпоинт
+    // Собираем FormData для единовременной отправки текста и файла
+    const formData = new FormData()
+    formData.append('name', state.name)
+    formData.append('email', state.email)
+    formData.append('password', state.password)
+
+    if (avatarFile.value) {
+      formData.append('avatar', avatarFile.value)
+    }
+
+    // 1. Отправляем запрос
     await $fetch('/api/auth/register', {
       method: 'POST',
-      body: {
-        name: state.name,
-        email: state.email,
-        password: state.password
-      }
+      body: formData
     })
 
-    // 2. Обновляем состояние useUserSession на клиенте
+    // 2. Обновляем сессию пользователя
     await refreshSession()
 
-    // 3. Перенаправляем на главную страницу
+    // 3. Перенаправляем
     await navigateTo('/')
   } catch (err: unknown) {
     const fetchError = err as { data?: { statusMessage?: string; message?: string } }
     toast.add({
       title: 'Ошибка',
       description: fetchError.data?.statusMessage || fetchError.data?.message || 'Ошибка регистрации',
-      color: 'error',
+      color: 'error'
     })
-  }finally {
+  } finally {
     isLoading.value = false
   }
 }
@@ -66,10 +134,7 @@ async function onSubmit() {
       <!-- Заголовок карточки -->
       <template #header>
         <div class="text-center space-y-1 py-2">
-<!--          <div class="inline-flex p-3 rounded-full bg-primary-500/10 text-primary mb-2">-->
-<!--            <UIcon name="i-lucide-user-plus" class="w-6 h-6" />-->
-<!--          </div>-->
-            <AppLogo/>
+          <AppLogo />
           <h1 class="text-2xl font-bold tracking-tight">
             Создание аккаунта
           </h1>
@@ -89,6 +154,58 @@ async function onSubmit() {
           icon="i-lucide-alert-circle"
           :title="errorMessage"
         />
+
+        <!-- Блок загрузки Аватара -->
+        <div class="flex flex-col items-center justify-center py-2 space-y-2">
+          <div class="relative group">
+            <button
+              type="button"
+              class="w-20 h-20 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center overflow-hidden border-2 border-dashed border-neutral-300 dark:border-neutral-700 hover:border-primary transition-colors focus:outline-none"
+              @click="triggerAvatarSelect"
+            >
+              <img
+                v-if="avatarPreview"
+                :src="avatarPreview"
+                alt="Превью аватара"
+                class="w-full h-full object-cover"
+              >
+              <div v-else class="flex flex-col items-center text-neutral-400">
+                <UIcon name="i-lucide-camera" class="w-7 h-7" />
+                <span class="text-[10px] mt-0.5 font-medium">Фото</span>
+              </div>
+
+              <!-- Оверлей при наведении -->
+              <div
+                class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <UIcon name="i-lucide-image-plus" class="w-6 h-6 text-white" />
+              </div>
+            </button>
+
+            <!-- Кнопка удаления выбранного фото -->
+            <button
+              v-if="avatarPreview"
+              type="button"
+              class="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm"
+              title="Удалить фото"
+              @click.stop="removeAvatar"
+            >
+              <UIcon name="i-lucide-x" class="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <p class="text-xs text-neutral-400">
+            Аватар (необязательно, до 2 МБ)
+          </p>
+
+          <input
+            ref="fileInputRef"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            class="hidden"
+            @change="handleAvatarChange"
+          >
+        </div>
 
         <!-- Поле Имя -->
         <UFormField label="Имя" name="name" required>
