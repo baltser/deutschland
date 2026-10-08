@@ -7,6 +7,16 @@
     "@prisma/client",
     "@prisma/engines"
   ],
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "esbuild",
+      "unrs-resolver",
+      "vue-demi"
+    ]
+  },
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
