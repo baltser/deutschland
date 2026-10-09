@@ -23,7 +23,7 @@ export default defineNuxtConfig({
       }
     },
     minio: {
-      endpoint: process.env.NUXT_MINIO_ENDPOINT || 'localhost',
+      endpoint: process.env.NUXT_MINIO_ENDPOINT || 'minio',
       port: Number(process.env.NUXT_MINIO_PORT) || 9000,
       useSSL: process.env.NUXT_MINIO_USE_SSL === 'true',
       accessKey: process.env.NUXT_MINIO_ACCESS_KEY || 'admin',
