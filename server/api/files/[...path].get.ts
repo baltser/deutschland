@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     setResponseHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable')
 
     return sendStream(event, dataStream)
-  } catch (err: any) {
+  } catch {
     throw createError({ statusCode: 404, statusMessage: 'Файл не найден' })
   }
 })

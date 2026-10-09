@@ -17,6 +17,7 @@ export default defineEventHandler(async (_event) => {
       name: true,
       email: true,
       ruleName: true,
+      avatarUrl: true,
       createdAt: true,
     },
     orderBy: {

@@ -47,7 +47,7 @@ const handleFileSelect = async (event: Event) => {
     toast.add({
       title: 'Ошибка формата',
       description: 'Поддерживаются только форматы JPG, PNG и WEBP',
-      color: 'red'
+      color: 'error'
     })
     return
   }
@@ -83,12 +83,14 @@ const handleFileSelect = async (event: Event) => {
     })
 
     emit('updated', response.avatarUrl)
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[AvatarUpload] Ошибка:', err)
     revokePreview()
+
+    const fetchError = err as { data?: { message?: string } }
     toast.add({
       title: 'Ошибка загрузки',
-      description: err.data?.message || 'Не удалось загрузить аватар на сервер',
+      description: fetchError.data?.message || 'Не удалось загрузить аватар на сервер',
       color: 'error'
     })
   } finally {

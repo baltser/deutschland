@@ -5,7 +5,7 @@
         :src="currentLogoUrl"
         class="h-14 w-auto object-contain"
         alt="DNZ Web"
-      />
+      >
     </div>
   </NuxtLink>
 </template>
