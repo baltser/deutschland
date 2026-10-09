@@ -1,21 +1,32 @@
 import * as Minio from 'minio'
 
-const config = useRuntimeConfig()
+let clientInstance: Minio.Client | null = null
 
-export const minioClient = new Minio.Client({
-  endPoint: config.minio.endpoint,
-  port: Number(config.minio.port) || 9000,
-  useSSL: String(config.minio.useSSL).toLowerCase() === 'true',
-  accessKey: config.minio.accessKey,
-  secretKey: config.minio.secretKey
-})
+export function getMinioClient() {
+  const config = useRuntimeConfig()
 
-export const BUCKET_NAME = config.minio.bucket
+  if (!clientInstance) {
+    clientInstance = new Minio.Client({
+      endPoint: config.minio.endpoint,
+      port: Number(config.minio.port) || 9000,
+      useSSL: false,
+      accessKey: config.minio.accessKey,
+      secretKey: config.minio.secretKey,
+      pathStyle: true
+    })
+  }
+
+  return {
+    client: clientInstance,
+    bucket: config.minio.bucket || 'dnz-uploads'
+  }
+}
 
 export async function ensureBucket() {
-  const exists = await minioClient.bucketExists(BUCKET_NAME)
+  const { client, bucket } = getMinioClient()
+  const exists = await client.bucketExists(bucket)
   if (!exists) {
-    await minioClient.makeBucket(BUCKET_NAME)
-    console.log(`[MinIO] Бакет "${BUCKET_NAME}" успешно создан.`)
+    await client.makeBucket(bucket)
+    console.log(`[MinIO] Бакет "${bucket}" успешно создан.`)
   }
 }
