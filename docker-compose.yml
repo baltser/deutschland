@@ -21,7 +21,7 @@ services:
 
   app:
     build: .
-    image: ghcr.io/baltser/deutschland:latest
+#    image: ghcr.io/baltser/deutschland:latest
     container_name: dnz_app
     restart: always
     ports:
@@ -35,6 +35,7 @@ services:
       MINIO_ROOT_PASSWORD: password123
     networks:
       - dnz-network
+    command: sh -c "npx prisma db push && node .output/server/index.mjs"
     depends_on:
       postgres:
         condition: service_healthy

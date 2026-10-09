@@ -12,6 +12,7 @@ model User {
   name      String
   email     String   @unique
   password  String
+  avatar    String?
   ruleName  String   @default("user") @map("rule_name")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

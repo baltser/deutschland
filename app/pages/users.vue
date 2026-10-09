@@ -13,6 +13,7 @@ interface UserItem {
   name: string
   email: string
   ruleName: string
+  avatar?: string | null // <-- Добавлено поле аватара
   createdAt: string
 }
 
@@ -108,8 +109,15 @@ async function saveRole() {
           >
             <td class="p-3">
               <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400">
-                  <UIcon name="i-lucide-user" class="w-4 h-4" />
+                <!-- Контейнер аватара с динамическим изображением из MinIO -->
+                <div class="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 overflow-hidden border border-neutral-200 dark:border-neutral-700">
+                  <img
+                    v-if="u.avatar"
+                    :src="`/api/files/${u.avatar}`"
+                    :alt="u.name"
+                    class="w-full h-full object-cover"
+                  >
+                  <UIcon v-else name="i-lucide-user" class="w-4 h-4" />
                 </div>
                 <span class="font-medium text-gray-900 dark:text-white">{{ u.name }}</span>
               </div>
@@ -137,9 +145,20 @@ async function saveRole() {
     <UModal v-model:open="isModalOpen" title="Изменение роли">
       <template #body>
         <div v-if="selectedUser" class="space-y-4">
-          <div class="p-3 rounded-lg bg-neutral-100 dark:bg-neutral-800">
-            <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ selectedUser.name }}</p>
-            <p class="text-xs text-neutral-500 dark:text-neutral-400">{{ selectedUser.email }}</p>
+          <div class="p-3 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-neutral-400 overflow-hidden shrink-0">
+              <img
+                v-if="selectedUser.avatar"
+                :src="`/api/files/${selectedUser.avatar}`"
+                :alt="selectedUser.name"
+                class="w-full h-full object-cover"
+              >
+              <UIcon v-else name="i-lucide-user" class="w-5 h-5" />
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ selectedUser.name }}</p>
+              <p class="text-xs text-neutral-500 dark:text-neutral-400">{{ selectedUser.email }}</p>
+            </div>
           </div>
 
           <UFormField label="Выберите новую роль">

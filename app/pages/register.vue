@@ -46,6 +46,7 @@ function handleAvatarChange(event: Event) {
     return
   }
 
+  // Ограничение 2 МБ
   if (file.size > 2 * 1024 * 1024) {
     toast.add({
       title: 'Файл слишком большой',
@@ -104,7 +105,7 @@ async function onSubmit() {
       formData.append('avatar', avatarFile.value)
     }
 
-    // 1. Отправляем запрос
+    // 1. Отправляем FormData
     await $fetch('/api/auth/register', {
       method: 'POST',
       body: formData
@@ -113,7 +114,7 @@ async function onSubmit() {
     // 2. Обновляем сессию пользователя
     await refreshSession()
 
-    // 3. Перенаправляем
+    // 3. Перенаправляем на главную
     await navigateTo('/')
   } catch (err: unknown) {
     const fetchError = err as { data?: { statusMessage?: string; message?: string } }
