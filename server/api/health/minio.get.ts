@@ -1,5 +1,3 @@
-import { ensureBucket } from '~~/server/utils/minio'
-
 export default defineEventHandler(async () => {
   try {
     await ensureBucket()
