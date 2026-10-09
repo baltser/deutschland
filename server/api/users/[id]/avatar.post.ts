@@ -1,6 +1,8 @@
-import { minioClient, BUCKET_NAME, ensureBucket } from '~~/server/utils/minio'
+import { getMinioClient } from '~~/server/utils/minio'
 
 export default defineEventHandler(async (event) => {
+  const { client, bucket } = getMinioClient()
+
   const userId = getRouterParam(event, 'id')
   if (!userId) {
     throw createError({ statusCode: 400, statusMessage: 'Не указан ID пользователя' })
@@ -28,8 +30,8 @@ export default defineEventHandler(async (event) => {
     await ensureBucket()
 
     // Загружаем буфер файла в MinIO
-    await minioClient.putObject(
-      BUCKET_NAME,
+    await client.putObject(
+      bucket,
       objectName,
       file.data,
       file.data.length,
