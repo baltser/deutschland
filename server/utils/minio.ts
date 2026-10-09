@@ -4,8 +4,8 @@ const config = useRuntimeConfig()
 
 export const minioClient = new Minio.Client({
   endPoint: config.minio.endpoint,
-  port: config.minio.port,
-  useSSL: config.minio.useSSL,
+  port: Number(config.minio.port) || 9000,
+  useSSL: String(config.minio.useSSL).toLowerCase() === 'true',
   accessKey: config.minio.accessKey,
   secretKey: config.minio.secretKey
 })
