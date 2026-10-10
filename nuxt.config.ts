@@ -9,9 +9,15 @@ export default defineNuxtConfig({
   devtools: {
     enabled: true
   },
-
+  fonts: {
+    // Отключаем скачивание или настраиваем поведение при отсутствии интернета в Docker
+    provider: 'local', // или 'none', если шрифты не критичны при сборке
+  },
   css: ['~/assets/css/main.css'],
-
+  routeRules: {
+    '/login': { redirect: '/auth/login' },
+    '/register': { redirect: '/auth/register' }
+  },
   // routeRules: {
   //   '/': { prerender: true }
   // },
