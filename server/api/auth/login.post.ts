@@ -49,6 +49,7 @@ export default defineEventHandler(async (event) => {
       email: user.email,
       rule_name: user.ruleName,
       created_at: user.createdAt.toISOString(),
+      avatar: user.avatar || null
     },
   })
 
