@@ -27,7 +27,10 @@ export default defineEventHandler(async (event) => {
   const objectName = `avatars/user_${userId}_${Date.now()}.${extension}`
 
   try {
-    await ensureBucket()
+    // Убедимся, что бакет существует (если у вас есть такая утилита)
+    if (typeof ensureBucket === 'function') {
+      await ensureBucket()
+    }
 
     // Загружаем буфер файла в MinIO
     await client.putObject(
@@ -38,10 +41,15 @@ export default defineEventHandler(async (event) => {
       { 'Content-Type': file.type }
     )
 
-    // Формируем публичный URL или внутренний API-маршрут для выдачи изображения
-    const avatarUrl = `/api/files/${objectName}`
+    // ИСПРАВЛЕНИЕ: Сохраняем имя файла в базу данных через Prisma
+    // (учитывая, что ID у вас String/UUID, передаем userId как есть)
+    await prisma.user.update({
+      where: { id: userId },
+      data: { avatar: objectName }
+    })
 
-    // await db.user.update({ where: { id: Number(userId) }, data: { avatarUrl } })
+    // Формируем URL для фронтенда
+    const avatarUrl = `/api/files/${objectName}`
 
     return {
       success: true,

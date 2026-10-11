@@ -21,7 +21,7 @@ services:
 
   app:
     build: .
-#    image: ghcr.io/baltser/deutschland:latest
+    image: ghcr.io/baltser/deutschland:latest
     container_name: dnz_app
     restart: always
     ports:

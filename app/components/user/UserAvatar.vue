@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
-
 interface Props {
   userId: string | number
   avatarUrl?: string | null
@@ -22,10 +20,10 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 const localPreviewUrl = ref<string>('')
 const uploading = ref<boolean>(false)
 
-// Приоритет отображения: локальный предпросмотр -> пропс avatarUrl
 const displayAvatarUrl = computed(() => localPreviewUrl.value || props.avatarUrl)
 
 const triggerFileInput = () => {
+  if (uploading.value) return
   fileInputRef.value?.click()
 }
 
@@ -41,7 +39,6 @@ const handleFileSelect = async (event: Event) => {
   const file = target.files?.[0]
   if (!file) return
 
-  // Валидация формата
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
   if (!allowedTypes.includes(file.type)) {
     toast.add({
@@ -52,7 +49,7 @@ const handleFileSelect = async (event: Event) => {
     return
   }
 
-  // Валидация размера (2 МБ)
+  // Исправленная проверка размера файла (2 МБ)
   if (file.size > 2 * 1024 * 1024) {
     toast.add({
       title: 'Файл слишком большой',
@@ -62,7 +59,6 @@ const handleFileSelect = async (event: Event) => {
     return
   }
 
-  // Мгновенный предпросмотр
   revokePreview()
   localPreviewUrl.value = URL.createObjectURL(file)
   uploading.value = true
@@ -71,7 +67,7 @@ const handleFileSelect = async (event: Event) => {
     const formData = new FormData()
     formData.append('avatar', file)
 
-    const response = await $fetch<{ success: boolean, avatarUrl: string }>(`/api/users/${props.userId}/avatar`, {
+    const response = await $fetch<{ success: boolean; avatarUrl: string }>(`/api/users/${props.userId}/avatar`, {
       method: 'POST',
       body: formData
     })
@@ -99,7 +95,6 @@ const handleFileSelect = async (event: Event) => {
   }
 }
 
-// Освобождаем память при размонтировании
 onUnmounted(() => {
   revokePreview()
 })
@@ -108,14 +103,17 @@ onUnmounted(() => {
 <template>
   <div class="relative inline-block">
     <!-- Кликабельный аватар (режим редактирования) -->
-    <button
+    <div
       v-if="canEdit"
-      type="button"
-      class="relative group rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-      :disabled="uploading"
+      role="button"
+      tabindex="0"
+      aria-label="Изменить аватар"
+      class="relative group rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+      :class="{ 'opacity-60 pointer-events-none': uploading }"
       @click="triggerFileInput"
+      @keydown.enter.space.prevent="triggerFileInput"
     >
-      <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border border-gray-200 dark:border-gray-700">
+      <div class="w-16 h-16 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center overflow-hidden border border-default">
         <img
           v-if="displayAvatarUrl"
           :src="displayAvatarUrl"
@@ -125,7 +123,7 @@ onUnmounted(() => {
         <UIcon
           v-else
           name="i-heroicons-user"
-          class="w-8 h-8 text-gray-400 dark:text-gray-500"
+          class="w-8 h-8 text-neutral-400 dark:text-neutral-500"
         />
       </div>
 
@@ -145,12 +143,12 @@ onUnmounted(() => {
           class="w-6 h-6 text-white animate-spin"
         />
       </div>
-    </button>
+    </div>
 
     <!-- Обычный аватар (только просмотр) -->
     <div
       v-else
-      class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border border-gray-200 dark:border-gray-700"
+      class="w-16 h-16 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center overflow-hidden border border-default"
     >
       <img
         v-if="avatarUrl"
@@ -161,7 +159,7 @@ onUnmounted(() => {
       <UIcon
         v-else
         name="i-heroicons-user"
-        class="w-8 h-8 text-gray-400 dark:text-gray-500"
+        class="w-8 h-8 text-neutral-400 dark:text-neutral-500"
       />
     </div>
 

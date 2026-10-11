@@ -6,8 +6,7 @@ useSeoMeta({
   description: 'Создание нового аккаунта в системе DNZ'
 })
 
-const { fetch: refreshSession } = useUserSession()
-const toast = useToast()
+const { register, isLoading, errorMessage } = useAuth()
 
 const state = reactive({
   name: '',
@@ -17,36 +16,17 @@ const state = reactive({
 })
 
 const avatarFile = ref<File | null>(null)
-const isLoading = ref(false)
-const errorMessage = ref('')
 
 async function onSubmit() {
-  errorMessage.value = ''
-
-  if (state.password !== state.confirmPassword) {
-    errorMessage.value = 'Пароли не совпадают'
-    return
-  }
-
-  isLoading.value = true
-
-  try {
-    const formData = new FormData()
-    formData.append('name', state.name)
-    formData.append('email', state.email)
-    formData.append('password', state.password)
-    if (avatarFile.value) formData.append('avatar', avatarFile.value)
-
-    await $fetch('/api/auth/register', { method: 'POST', body: formData })
-    await refreshSession()
-    await navigateTo('/')
-  } catch (err: unknown) {
-    const fetchError = err as { data?: { statusMessage?: string; message?: string } }
-    errorMessage.value = fetchError.data?.statusMessage || fetchError.data?.message || 'Ошибка регистрации'
-    toast.add({ title: 'Ошибка', description: errorMessage.value, color: 'error' })
-  } finally {
-    isLoading.value = false
-  }
+  await register(
+    {
+      name: state.name,
+      email: state.email,
+      password: state.password,
+      avatar: avatarFile.value
+    },
+    state.confirmPassword
+  )
 }
 </script>
 

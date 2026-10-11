@@ -2,7 +2,6 @@ import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { randomUUID } from 'node:crypto'
 import {getMinioClient} from "#server/utils/minio.ts";
-// import { getMinioClient, ensureBucket } from '~/server/utils/minio'
 
 const bodySchema = z.object({
   name: z.string().min(1, 'Имя обязательно'),
