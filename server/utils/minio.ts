@@ -1,4 +1,5 @@
 import * as Minio from 'minio'
+import { randomUUID } from 'node:crypto'
 
 let clientInstance: Minio.Client | null = null
 
@@ -23,10 +24,40 @@ export function getMinioClient() {
 }
 
 export async function ensureBucket() {
-  const { client, bucket } = getMinioClient()
-  const exists = await client.bucketExists(bucket)
-  if (!exists) {
-    await client.makeBucket(bucket)
-    console.log(`[MinIO] Бакет "${bucket}" успешно создан.`)
+  try {
+    const { client, bucket } = getMinioClient()
+    const exists = await client.bucketExists(bucket)
+    if (!exists) {
+      await client.makeBucket(bucket)
+      console.log(`[MinIO] Бакет "${bucket}" успешно создан.`)
+    }
+  } catch (err) {
+    console.error('[MinIO] Ошибка проверки/создания бакета:', err)
   }
+}
+
+/**
+ * Универсальная функция загрузки файла в MinIO
+ */
+export async function uploadFileToMinio(
+  fileBuffer: Buffer,
+  originalFilename: string,
+  mimeType: string,
+  folder = 'avatars'
+): Promise<string> {
+  await ensureBucket()
+  const { client, bucket } = getMinioClient()
+
+  const fileExt = originalFilename.split('.').pop() || 'jpg'
+  const objectName = `${folder}/${randomUUID()}.${fileExt}`
+
+  await client.putObject(
+    bucket,
+    objectName,
+    fileBuffer,
+    fileBuffer.length,
+    { 'Content-Type': mimeType }
+  )
+
+  return objectName
 }

@@ -12,7 +12,8 @@ export default defineEventHandler(async (event) => {
   const clientIp = getRequestIP(event) || 'unknown'
   const userAgent = getRequestHeader(event, 'user-agent') || 'unknown'
 
-  logger.info(`Попытка входа: ${body.email}`, { ip: clientIp, userAgent })
+  const log = logger.withTag('auth')
+  log.info(`Попытка входа: ${body.email}`, { ip: clientIp, userAgent })
 
   // prisma доступен автоматически без импортов
   const user = await prisma.user.findUnique({
@@ -20,7 +21,8 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!user) {
-    logger.warn(`Неудачная попытка входа (пользователь не найден): ${body.email}`, { ip: clientIp })
+    const log = logger.withTag('auth')
+    log.warn(`Неудачная попытка входа (пользователь не найден): ${body.email}`, { ip: clientIp })
 
     throw createError({
       statusCode: 401,
@@ -31,7 +33,8 @@ export default defineEventHandler(async (event) => {
   const isPasswordValid = await bcrypt.compare(body.password, user.password)
 
   if (!isPasswordValid) {
-    logger.warn(`Неудачная попытка входа (неверный пароль): ${body.email}`, { ip: clientIp })
+    const log = logger.withTag('auth')
+    log.warn(`Неудачная попытка входа (неверный пароль): ${body.email}`, { ip: clientIp })
 
     throw createError({
       statusCode: 401,
@@ -49,7 +52,7 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  logger.info(`✅ Успешный вход: ${user.email}`, { userId: user.id })
+  log.info(`✅ Успешный вход: ${user.email}`, { userId: user.id })
 
   return {
     success: true,

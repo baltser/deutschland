@@ -1,5 +1,3 @@
-// import { getMinioClient } from '~~/server/utils/minio'
-
 import {getMinioClient} from "#server/utils/minio.ts";
 
 export default defineEventHandler(async (event) => {

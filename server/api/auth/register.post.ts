@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
-import { randomUUID } from 'node:crypto'
-import {getMinioClient} from "#server/utils/minio.ts";
+import {uploadFileToMinio} from "#server/utils/minio.ts";
 
 const bodySchema = z.object({
   name: z.string().min(1, 'Имя обязательно'),
@@ -23,7 +22,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 2. Извлекаем текстовые поля и файл
   const rawFields: Record<string, string> = {}
   let avatarPart: { filename: string; type: string; data: Buffer } | null = null
 
@@ -41,7 +39,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // 3. Валидируем текстовые поля через Zod
+  // 2. Валидация полей
   const parseResult = bodySchema.safeParse(rawFields)
   if (!parseResult.success) {
     throw createError({
@@ -51,52 +49,42 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = parseResult.data
+  const log = logger.withTag('auth')
+  log.info(`Попытка регистрации: ${body.email}`, { ip: clientIp, userAgent })
 
-  logger.info(`Попытка регистрации: ${body.email}`, { ip: clientIp, userAgent })
-
-  // 4. Проверяем существование пользователя
+  // 3. Проверка существования пользователя
   const existingUser = await prisma.user.findUnique({
     where: { email: body.email }
   })
 
   if (existingUser) {
-    logger.warn(`Неудачная регистрация: email ${body.email} уже зарегистрирован`, { ip: clientIp })
-
+    log.warn(`Неудачная регистрация: email ${body.email} уже зарегистрирован`, { ip: clientIp })
     throw createError({
       statusCode: 409,
       statusMessage: 'Пользователь с таким email уже существует'
     })
   }
 
-  // 5. Сохраняем аватар в MinIO (если загружен)
+  // 4. Загрузка аватара через чистый хелпер
   let avatarPath: string | null = null
 
   if (avatarPart) {
     try {
-      await ensureBucket()
-      // Деструктуризируем client и bucket из утилиты
-      const { client, bucket } = getMinioClient()
-
-      const fileExt = avatarPart.filename.split('.').pop() || 'jpg'
-      const objectName = `avatars/${randomUUID()}.${fileExt}`
-
-      // Вызываем client.putObject (а не minioClient.putObject)
-      await client.putObject(
-        bucket,
-        objectName,
+      avatarPath = await uploadFileToMinio(
         avatarPart.data,
-        avatarPart.data.length,
-        { 'Content-Type': avatarPart.type }
+        avatarPart.filename,
+        avatarPart.type,
+        'avatars'
       )
-
-      avatarPath = objectName
-      logger.info(`[MinIO] Аватар успешно загружен: ${objectName}`)
+      log.info(`[MinIO] Аватар успешно загружен: ${avatarPath}`)
     } catch (err) {
       console.error('[MinIO Upload Error]:', err)
+      // Решаем: прерывать ли регистрацию при сбое загрузки аватара,
+      // или просто оставить аватар null. Обычно безопаснее продолжить без аватара или вернуть ошибку.
     }
   }
 
-  // 6. Хешируем пароль и создаем пользователя в БД
+  // 5. Создание пользователя в БД
   const hashedPassword = await bcrypt.hash(body.password, 10)
 
   const user = await prisma.user.create({
@@ -105,23 +93,23 @@ export default defineEventHandler(async (event) => {
       email: body.email,
       password: hashedPassword,
       ruleName: 'user',
-      ...(avatarPath && { avatar: avatarPath }) // Замените на имя поля в вашей модели Prisma (avatar или avatarUrl)
+      ...(avatarPath && { avatar: avatarPath })
     }
   })
 
-  // 7. Авторизуем пользователя в сессии
+  // 6. Установка сессии
   await setUserSession(event, {
     user: {
       id: user.id,
       name: user.name,
       email: user.email,
       rule_name: user.ruleName,
-      created_at: user.createdAt.toISOString()
+      created_at: user.createdAt.toISOString(),
+      avatar: user.avatar || null
     }
   })
 
-  logger.info(`✅ Успешная регистрация: ${user.email}`, { userId: user.id })
-
+  log.info(`✅ Успешная регистрация: ${user.email}`, { userId: user.id })
   setResponseStatus(event, 201)
 
   return {
