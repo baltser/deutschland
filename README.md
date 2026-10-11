@@ -1,64 +1,115 @@
-# Nuxt Starter Template
+# 🚀 DNZ Platform
 
-[![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
+[![Nuxt 4](https://img.shields.io/badge/Nuxt-4.x-00DC82?logo=nuxt&labelColor=020420)](https://nuxt.com)
+[![Nuxt UI](https://img.shields.io/badge/Nuxt-UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
+[![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma&labelColor=020420)](https://www.prisma.io)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-4169E1?logo=postgresql&labelColor=020420)](https://www.postgresql.org)
+[![MinIO](https://img.shields.io/badge/MinIO-Storage-C72C48?logo=minio&labelColor=020420)](https://min.io)
 
-Use this template to get started with [Nuxt UI](https://ui.nuxt.com) quickly.
+Современное веб-приложение на базе **Nuxt 4**, включающее в себя безопасную систему аутентификации, управление пользователями, загрузку файлов в объектное хранилище MinIO и административную панель.
 
-- [Live demo](https://starter-template.nuxt.dev/)
-- [Documentation](https://ui.nuxt.com/docs/getting-started/installation/nuxt)
+---
 
-<a href="https://starter-template.nuxt.dev/" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png">
-    <img alt="Nuxt Starter Template" src="https://ui.nuxt.com/assets/templates/nuxt/starter-light.png" width="830" height="466">
-  </picture>
-</a>
+## 🛠 Технологический стек
 
-> The starter template for Vue is on https://github.com/nuxt-ui-templates/starter-vue.
+* **Фронтенд:** Nuxt 4, Vue 3 (Composition API), Tailwind CSS, Nuxt UI.
+* **Управление состоянием:** Pinia (`app/stores/`).
+* **Аутентификация:** `nuxt-auth-utils` (сессионная авторизация).
+* **Бэкенд (Nitro Server):** Встроенные API-эндпоинты Nuxt (`server/api/`).
+* **База данных:** PostgreSQL + Prisma ORM.
+* **Хранилище медиафайлов:** MinIO (изображения, аватары, документы).
 
-## Quick Start
+---
 
-```bash [Terminal]
-npm create nuxt@latest -- -t ui
+## 📂 Структура проекта
+
+Проект разделен на клиентскую (`app/`) и серверную (`server/`) части:
+
+```text
+deutschland/
+├── app/                  # Клиентская часть (Nuxt)
+│   ├── components/       # UI-компоненты (admin/, auth/, user/, app/)
+│   ├── composables/      # Бизнес-логика и композисы (useAuth.ts)
+│   ├── stores/           # Состояние Pinia (adminUsers.ts)
+│   ├── pages/            # Файловый роутинг (auth/, admin/, profile/)
+│   └── layouts/          # Макеты страниц (default.vue, auth.vue)
+├── server/               # Серверная часть (Nitro API)
+│   ├── api/              # Эндпоинты (auth/, users/, admin/, files/)
+│   └── utils/            # Системные синглтоны (prisma.ts, minio.ts)
+├── prisma/               # Схема базы данных и миграции
+├── docs/                 # Техническая документация для разработчиков
+└── docker-compose.yml    # Инфраструктура (PostgreSQL, MinIO)
 ```
+## ⚙️ Быстрый старт (Локальная разработка)
 
-## Deploy your own
+Инфраструктура (база данных и файловое хранилище) запускается через Docker, а само приложение Nuxt — локально на хосте с поддержкой Hot-Reload.
+1. Клонирование репозитория и установка зависимостей
+```Bash
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-name=starter&repository-url=https%3A%2F%2Fgithub.com%2Fnuxt-ui-templates%2Fstarter&demo-image=https%3A%2F%2Fui.nuxt.com%2Fassets%2Ftemplates%2Fnuxt%2Fstarter-dark.png&demo-url=https%3A%2F%2Fstarter-template.nuxt.dev%2F&demo-title=Nuxt%20Starter%20Template&demo-description=A%20minimal%20template%20to%20get%20started%20with%20Nuxt%20UI.)
-
-## Setup
-
-Make sure to install the dependencies:
-
-```bash
+git clone <url-репозитория>
+cd deutschland
 pnpm install
 ```
+2. Настройка окружения
 
-## Development Server
+Создайте файл .env в корне проекта на основе следующего примера:
+```Code-Snippet
 
-Start the development server on `http://localhost:3000`:
+NUXT_SESSION_PASSWORD=random_secure_32_character_string_here
+DATABASE_URL="postgresql://dnz_user:dnz_password@localhost:5432/dnz_db?schema=public"
 
-```bash
+NODE_ENV=development
+
+POSTGRES_USER=dnz_user
+POSTGRES_PASSWORD=dnz_password
+POSTGRES_DB=dnz_db
+
+# MinIO Config
+MINIO_ROOT_USER=admin
+MINIO_ROOT_PASSWORD=password12345
+NUXT_MINIO_ENDPOINT=localhost
+NUXT_MINIO_PORT=9000
+NUXT_MINIO_USE_SSL=false
+NUXT_MINIO_ACCESS_KEY=admin
+NUXT_MINIO_SECRET_KEY=password12345
+NUXT_MINIO_BUCKET=dnz-uploads
+```
+3. Запуск инфраструктуры (Docker)
+
+``docker compose up -d postgres minio``
+
+4. Инициализация базы данных Prisma
+```Bash 
+npx prisma db push
+npx prisma generate
+```
+5. Запуск сервера разработки
+```Bash
+
 pnpm dev
 ```
+Приложение будет доступно по адресу http://localhost:3000.
 
-## Production
+---
+## 📖 Техническая документация
 
-Build the application for production:
+Подробная документация по архитектуре, контрактам API и базе данных находится в директории docs/:
 
-```bash
-pnpm build
-```
+    architecture.md — Общая архитектура и паттерны проекта.
 
-Locally preview production build:
+    api-endpoints.md — Описание серверных API-эндпоинтов.
 
-```bash
-pnpm preview
-```
+    database.md — Схема базы данных и модели Prisma.
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+    development.md — Руководство по развертыванию.
 
-## Renovate integration
+🛠 Полезные команды
 
-Install [Renovate GitHub app](https://github.com/apps/renovate/installations/select_target) on your repository and you are good to go.
+    pnpm lint — Проверка кода линтером (ESLint).
+
+    pnpm run typecheck — Проверка типов TypeScript.
+
+    pnpm build — Сборка приложения для продакшна.
+
+
+---
