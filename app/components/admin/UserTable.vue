@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { UserItem } from '~/stores/adminUsers.ts'
 
-defineProps<{
+const props = defineProps<{
   users: UserItem[]
   loading: boolean
   error: unknown
@@ -10,6 +10,16 @@ defineProps<{
 defineEmits<{
   select: [user: UserItem]
 }>()
+
+// Безопасное вычисление текста ошибки для TypeScript
+const errorMessage = computed(() => {
+  if (!props.error) return ''
+  if (typeof props.error === 'object') {
+    const err = props.error as { message?: string; data?: { message?: string; statusMessage?: string } }
+    return err.message || err.data?.message || err.data?.statusMessage || 'Произошла неизвестная ошибка'
+  }
+  return String(props.error)
+})
 </script>
 
 <template>
@@ -25,7 +35,7 @@ defineEmits<{
       color="error"
       variant="soft"
       title="Ошибка загрузки"
-      :description="error.message"
+      :description="errorMessage"
       class="mb-6"
     />
 
