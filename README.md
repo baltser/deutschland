@@ -5,6 +5,8 @@
 [![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma&labelColor=020420)](https://www.prisma.io)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-4169E1?logo=postgresql&labelColor=020420)](https://www.postgresql.org)
 [![MinIO](https://img.shields.io/badge/MinIO-Storage-C72C48?logo=minio&labelColor=020420)](https://min.io)
+[![Redis](https://img.shields.io/badge/Redis-Cache%2FStore-DC382D?logo=redis&labelColor=020420)](https://redis.io)
+[![Nodemailer](https://img.shields.io/badge/Nodemailer-SMTP-339933?logo=nodedotjs&labelColor=020420)](https://nodemailer.com)
 
 Современное веб-приложение на базе **Nuxt 4**, включающее в себя безопасную систему аутентификации, управление пользователями, загрузку файлов в объектное хранилище MinIO и административную панель.
 
@@ -76,7 +78,7 @@ NUXT_MINIO_BUCKET=dnz-uploads
 ```
 3. Запуск инфраструктуры (Docker)
 
-``docker compose up -d postgres minio``
+``docker compose up -d postgres minio redis``
 
 4. Инициализация базы данных Prisma
 ```Bash 
@@ -94,15 +96,16 @@ pnpm dev
 ## 📖 Техническая документация
 
 Подробная документация по архитектуре, контрактам API и базе данных находится в директории docs/:
-
-    architecture.md — Общая архитектура и паттерны проекта.
-
-    api-endpoints.md — Описание серверных API-эндпоинтов.
-
-    database.md — Схема базы данных и модели Prisma.
-
-    development.md — Руководство по развертыванию.
-
+```
+docs/
+├── architecture.md       # Общая архитектура и структура слоев
+├── api-endpoints.md      # Спецификация API (auth, users, admin, files)
+├── database.md           # Схема БД (модели users, roles) и связи
+├── development.md        # Инструкция для локальной разработки
+├── deployment.md         # 🚀 Инструкция по деплою (Docker, Nginx, SSL)
+├── auth-flow.md          # 🔒 Аутентификация, сессии и подтверждение email
+└── storage.md            # 📁 Управление файлами и интеграция с MinIO
+```
 🛠 Полезные команды
 
     pnpm lint — Проверка кода линтером (ESLint).
