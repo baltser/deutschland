@@ -30,9 +30,18 @@ services:
       NODE_ENV: ${NODE_ENV}
       DATABASE_URL: ${DATABASE_URL}
       NUXT_SESSION_PASSWORD: ${NUXT_SESSION_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ROOT_USER: admin
       MINIO_ROOT_PASSWORD: password123
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+      NUXT_PUBLIC_APP_URL: ${NUXT_PUBLIC_APP_URL}
     networks:
       - dnz-network
 #    command: sh -c "npx prisma db push && node .output/server/index.mjs"
