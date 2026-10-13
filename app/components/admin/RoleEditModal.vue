@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { UserItem } from '@/stores/adminUsers'
-import UserAvatar from "~/components/user/UserAvatar.vue";
+import UserAvatar from "~/components/user/UserAvatar.vue"
 
 const props = defineProps<{
   modelValue: boolean
@@ -12,7 +12,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   'update:role': [value: string]
-  'update:avatar': [newAvatarUrl: string] // Событие при смене аватара
+  'update:avatar': [newAvatarPath: string]
   save: []
 }>()
 
@@ -33,9 +33,8 @@ const roleOptions = [
 
 function handleAvatarUpdated(newUrl: string) {
   if (props.user) {
-    // Извлекаем относительный путь для бэкенда/хранилища из полного URL или передаем дальше
+    // Извлекаем относительный путь для бэкенда/хранилища
     const relativePath = newUrl.replace('/api/files/', '')
-    // props.user.avatar = relativePath
     emit('update:avatar', relativePath)
   }
 }
@@ -45,17 +44,18 @@ function handleAvatarUpdated(newUrl: string) {
   <UModal v-model:open="isOpen" title="Управление пользователем">
     <template #body>
       <div v-if="user" class="space-y-6">
-        <!-- Блок профиля с возможностью смены аватара администратором -->
+        <!-- Блок профиля -->
         <div class="flex items-center gap-4 p-4 rounded-xl bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700">
           <UserAvatar
-            :user-id="user.id"
-            :avatar-url="user.avatar ? `/api/files/${user.avatar}` : null"
+            :user-id="user.user_id"
+            :avatar-url="user.avatar_path ? `/api/files/${user.avatar_path}` : null"
             :can-edit="true"
             size="w-14 h-14"
             @updated="handleAvatarUpdated"
           />
           <div>
-            <p class="text-base font-semibold text-gray-900 dark:text-white">{{ user.name }}</p>
+            <!-- Исправлено: user.name -> user.user_name -->
+            <p class="text-base font-semibold text-gray-900 dark:text-white">{{ user.user_name }}</p>
             <p class="text-xs text-neutral-500 dark:text-neutral-400">{{ user.email }}</p>
             <p class="text-[11px] text-primary mt-1">Кликните на аватар, чтобы заменить его</p>
           </div>
@@ -86,7 +86,7 @@ function handleAvatarUpdated(newUrl: string) {
           :loading="isSaving"
           @click="$emit('save')"
         >
-          Сохранить роль
+          Сохранить изменения
         </UButton>
       </div>
     </template>

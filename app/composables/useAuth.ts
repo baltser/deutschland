@@ -73,8 +73,17 @@ export const useAuth = () => {
         body: formData
       })
 
-      await refreshSession()
-      await navigateTo('/')
+      // ❌ Удалили refreshSession() и navigateTo('/'),
+      // так как пользователь еще не подтвердил почту и не имеет активной сессии.
+
+      toast.add({
+        title: 'Регистрация успешна',
+        description: 'Мы отправили письмо для подтверждения на ваш email.',
+        color: 'success'
+      })
+
+      // ✅ Перенаправляем на страницу ожидания
+      await navigateTo('/auth/verify-pending')
     } catch (err: unknown) {
       handleAuthError(err, 'Ошибка регистрации')
     } finally {

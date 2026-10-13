@@ -1,66 +1,81 @@
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { logger } from '#server/utils/logger'
 
-const bodySchema = z.object({
+const loginSchema = z.object({
   email: z.email('Некорректный формат email'),
-  password: z.string().min(1, 'Пароль обязателен'),
+  password: z.string().min(1, 'Введите пароль')
 })
 
 export default defineEventHandler(async (event) => {
-  const body = await readValidatedBody(event, b => bodySchema.parse(b))
+  const log = logger.withTag('auth:login')
 
-  const clientIp = getRequestIP(event) || 'unknown'
-  const userAgent = getRequestHeader(event, 'user-agent') || 'unknown'
+  // 1. Читаем JSON body (не multipart!)
+  const body = await readBody(event)
+  const parseResult = loginSchema.safeParse(body)
 
-  const log = logger.withTag('auth')
-  log.info(`Попытка входа: ${body.email}`, { ip: clientIp, userAgent })
+  if (!parseResult.success) {
+    throw createError({
+      statusCode: 400,
+      message: parseResult.error.issues[0]?.message || 'Неверный формат данных'
+    })
+  }
 
-  // prisma доступен автоматически без импортов
-  const user = await prisma.user.findUnique({
-    where: { email: body.email },
+  const { email, password } = parseResult.data
+
+  // 2. Ищем пользователя и его роль
+  const user = await prisma.users.findUnique({
+    where: { email },
+    include: { role: true }
   })
 
-  if (!user) {
-    const log = logger.withTag('auth')
-    log.warn(`Неудачная попытка входа (пользователь не найден): ${body.email}`, { ip: clientIp })
-
+  if (!user || user.deleted_at) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Неверный email или пароль',
+      message: 'Неверный email или пароль'
     })
   }
 
-  const isPasswordValid = await bcrypt.compare(body.password, user.password)
-
-  if (!isPasswordValid) {
-    const log = logger.withTag('auth')
-    log.warn(`Неудачная попытка входа (неверный пароль): ${body.email}`, { ip: clientIp })
-
+  // 3. Проверяем флаг активности (подтверждена ли почта)
+  if (!user.is_active) {
     throw createError({
-      statusCode: 401,
-      statusMessage: 'Неверный email или пароль',
+      statusCode: 403,
+      message: 'Пожалуйста, подтвердите вашу электронную почту перед входом.'
     })
   }
 
+  // 4. Проверяем пароль
+  const isValidPassword = await bcrypt.compare(password, user.password)
+  if (!isValidPassword) {
+    throw createError({
+      statusCode: 401,
+      message: 'Неверный email или пароль'
+    })
+  }
+
+  // 5. Устанавливаем сессию (без лишних полей, строго по нашей модели)
   await setUserSession(event, {
     user: {
-      id: user.id,
-      name: user.name,
+      user_id: user.user_id,
+      user_name: user.user_name,
       email: user.email,
-      rule_name: user.ruleName,
-      avatar: user.avatar || null
-    },
+      role_id: user.role_id,
+      role_name: user.role.role_name,
+      avatar_path: user.avatar_path || null,
+      is_active: user.is_active
+    }
   })
 
-  log.info(`✅ Успешный вход: ${user.email}`, { userId: user.id })
+  log.success(`✅ Успешный вход: ${user.email} (ID: ${user.user_id})`)
 
   return {
     success: true,
     user: {
-      id: user.id,
-      name: user.name,
+      user_id: user.user_id,
+      user_name: user.user_name,
       email: user.email,
-      rule_name: user.ruleName,
-    },
+      role_id: user.role_id,
+      avatar_path: user.avatar_path || null
+    }
   }
 })

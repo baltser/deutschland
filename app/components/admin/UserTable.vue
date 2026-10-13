@@ -15,8 +15,8 @@ defineEmits<{
 const errorMessage = computed(() => {
   if (!props.error) return ''
   if (typeof props.error === 'object') {
-    const err = props.error as { message?: string; data?: { message?: string; statusMessage?: string } }
-    return err.message || err.data?.message || err.data?.statusMessage || 'Произошла неизвестная ошибка'
+    const err = props.error as { message?: string; data?: { message?: string } }
+    return err.message || err.data?.message || 'Произошла неизвестная ошибка'
   }
   return String(props.error)
 })
@@ -52,7 +52,7 @@ const errorMessage = computed(() => {
         <tbody>
         <tr
           v-for="u in users"
-          :key="u.id"
+          :key="u.user_id"
           class="border-b border-gray-100 dark:border-gray-800/60 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
           @click="$emit('select', u)"
         >
@@ -60,14 +60,14 @@ const errorMessage = computed(() => {
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 overflow-hidden border border-neutral-200 dark:border-neutral-700">
                 <img
-                  v-if="u.avatar"
-                  :src="`/api/files/${u.avatar}`"
-                  :alt="u.name"
+                  v-if="u.avatar_path"
+                  :src="`/api/files/${u.avatar_path}`"
+                  :alt="u.user_name"
                   class="w-full h-full object-cover"
                 >
                 <UIcon v-else name="i-lucide-user" class="w-4 h-4" />
               </div>
-              <span class="font-medium text-gray-900 dark:text-white">{{ u.name }}</span>
+              <span class="font-medium text-gray-900 dark:text-white">{{ u.user_name }}</span>
             </div>
           </td>
           <td class="p-3 text-gray-600 dark:text-gray-400 text-sm">
@@ -75,12 +75,12 @@ const errorMessage = computed(() => {
           </td>
           <td class="p-3">
             <UBadge
-              :color="u.ruleName === 'admin' ? 'primary' : 'neutral'"
+              :color="u.role_name === 'admin' ? 'primary' : 'neutral'"
               variant="subtle"
               size="sm"
               class="uppercase"
             >
-              {{ u.ruleName }}
+              {{ u.role_name }}
             </UBadge>
           </td>
         </tr>

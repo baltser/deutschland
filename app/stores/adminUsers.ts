@@ -1,12 +1,22 @@
 import { defineStore } from 'pinia'
 
 export interface UserItem {
-  id: string
-  name: string
+  user_id: number
+  user_name: string
   email: string
-  ruleName: string
-  avatar: string | null
-  createdAt?: string
+  phone?: string | null
+  role_name: string
+  avatar_path?: string | null
+  is_active: boolean
+}
+
+// Интерфейс для типизации ошибок от fetch-запросов
+interface ApiError {
+  data?: {
+    message?: string
+    statusMessage?: string
+  }
+  message?: string
 }
 
 export const useAdminUsersStore = defineStore('adminUsers', () => {
@@ -14,7 +24,7 @@ export const useAdminUsersStore = defineStore('adminUsers', () => {
 
   const users = ref<UserItem[]>([])
   const loading = ref(false)
-  const error = ref<unknown>(null)
+  const error = ref<string | null>(null)
 
   const isModalOpen = ref(false)
   const selectedUser = ref<UserItem | null>(null)
@@ -23,11 +33,13 @@ export const useAdminUsersStore = defineStore('adminUsers', () => {
 
   async function fetchUsers() {
     loading.value = true
+    error.value = null
     try {
-      users.value = await $fetch<UserItem[]>('/api/admin/users')
-      error.value = null
+      const data = await $fetch<{ success: boolean; users: UserItem[] }>('/api/admin/users')
+      users.value = data.users
     } catch (err: unknown) {
-      error.value = err
+      const apiErr = err as ApiError
+      error.value = apiErr?.data?.message || apiErr?.message || 'Ошибка загрузки пользователей'
     } finally {
       loading.value = false
     }
@@ -35,13 +47,13 @@ export const useAdminUsersStore = defineStore('adminUsers', () => {
 
   function openEditModal(user: UserItem) {
     selectedUser.value = { ...user }
-    selectedRole.value = user.ruleName
+    selectedRole.value = user.role_name
     isModalOpen.value = true
   }
 
   function updateUserAvatar(newAvatarPath: string) {
     if (selectedUser.value) {
-      selectedUser.value.avatar = newAvatarPath
+      selectedUser.value.avatar_path = newAvatarPath
     }
   }
 
@@ -50,27 +62,27 @@ export const useAdminUsersStore = defineStore('adminUsers', () => {
 
     isSaving.value = true
     try {
-      await $fetch(`/api/admin/users/${selectedUser.value.id}`, {
+      await $fetch(`/api/admin/users/${selectedUser.value.user_id}`, {
         method: 'PATCH',
         body: {
-          ruleName: selectedRole.value,
-          avatar: selectedUser.value.avatar
+          role_name: selectedRole.value,
+          avatar_path: selectedUser.value.avatar_path
         },
       })
 
       toast.add({
         title: 'Успешно',
-        description: `Данные пользователя ${selectedUser.value.name} обновлены`,
+        description: `Данные пользователя ${selectedUser.value.user_name} обновлены`,
         color: 'success',
       })
 
       isModalOpen.value = false
       await fetchUsers()
     } catch (err: unknown) {
-      const fetchError = err as { data?: { statusMessage?: string } }
+      const apiErr = err as ApiError
       toast.add({
         title: 'Ошибка',
-        description: fetchError.data?.statusMessage || 'Не удалось обновить данные',
+        description: apiErr?.data?.message || apiErr?.message || 'Не удалось обновить данные',
         color: 'error',
       })
     } finally {

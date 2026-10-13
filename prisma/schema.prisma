@@ -6,16 +6,26 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+model users {
+  user_id     Int       @id @default(autoincrement())
+  user_name   String
+  phone       String?
+  email       String    @unique
+  password    String
+  role_id     Int
+  avatar_path String?
+  is_active   Boolean   @default(false)
+  deleted_at  DateTime?
 
-model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  avatar    String?
-  ruleName  String   @default("user") @map("rule_name")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
+  role roles @relation(fields: [role_id], references: [role_id])
+  // addresses users_x_addresses[]
   @@map("users")
+}
+
+model roles {
+  role_id   Int     @id @default(autoincrement())
+  role_name String  @unique
+  users     users[]
+
+  @@map("roles")
 }

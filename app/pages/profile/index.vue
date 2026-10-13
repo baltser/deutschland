@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({
-  layout: 'default'
+  layout: 'default',
+  // middleware: 'auth'
 })
 
 useSeoMeta({
@@ -23,24 +24,24 @@ const { state, isLoading, saveProfile, handleAvatarUpdated } = useProfile()
     <UCard>
       <div class="flex flex-col sm:flex-row items-center gap-6">
         <UserAvatar
-          v-if="user?.id"
-          :user-id="user.id"
-          :avatar-url="user.avatar ? `/api/files/${user.avatar}` : null"
+          v-if="user?.user_id"
+          :user-id="user.user_id"
+          :avatar-url="user.avatar_path ? `/api/files/${user.avatar_path}` : null"
           :can-edit="true"
           class="w-20 h-20"
           @updated="handleAvatarUpdated"
         />
         <div class="space-y-1 text-center sm:text-left">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ user?.name }}</h2>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ user?.user_name }}</h2>
           <p class="text-sm text-gray-500 dark:text-gray-400">{{ user?.email }}</p>
           <div class="pt-1">
             <UBadge
-              :color="(user?.rule_name || user?.ruleName) === 'admin' ? 'primary' : 'neutral'"
+              :color="user?.role_name === 'admin' ? 'primary' : 'neutral'"
               variant="subtle"
               size="xs"
               class="uppercase"
             >
-              Роль: {{ user?.rule_name || user?.ruleName || 'user' }}
+              Роль: {{ user?.role_name || 'user' }}
             </UBadge>
           </div>
         </div>
@@ -63,7 +64,9 @@ const { state, isLoading, saveProfile, handleAvatarUpdated } = useProfile()
         </UFormField>
 
         <div class="border-t border-default pt-4 mt-4">
-          <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">Изменение пароля (оставьте пустыми, если не нужно менять)</h4>
+          <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">
+            Изменение пароля (оставьте пустыми, если не нужно менять)
+          </h4>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <UFormField label="Новый пароль" name="password">

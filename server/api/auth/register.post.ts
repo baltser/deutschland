@@ -1,6 +1,10 @@
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
-import {uploadFileToMinio} from "#server/utils/minio.ts";
+import { randomBytes } from 'node:crypto'
+import { uploadFileToMinio } from '#server/utils/minio'
+import { getRedisClient } from '#server/utils/redis'
+import { logger } from '#server/utils/logger'
+import { sendVerificationEmail } from '#server/utils/mail'
 
 const bodySchema = z.object({
   name: z.string().min(1, 'Имя обязательно'),
@@ -9,16 +13,13 @@ const bodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const clientIp = getRequestIP(event) || 'unknown'
-  const userAgent = getRequestHeader(event, 'user-agent') || 'unknown'
+  const log = logger.withTag('auth:register')
 
-  // 1. Читаем multipart/form-data
   const parts = await readMultipartFormData(event)
-
   if (!parts || parts.length === 0) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Форма не содержит данных'
+      message: 'Форма не содержит данных'
     })
   }
 
@@ -39,35 +40,42 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // 2. Валидация полей
   const parseResult = bodySchema.safeParse(rawFields)
   if (!parseResult.success) {
     throw createError({
       statusCode: 400,
-      statusMessage: parseResult.error.issues[0]?.message || 'Ошибка валидации данных'
+      message: parseResult.error.issues[0]?.message || 'Ошибка валидации данных'
     })
   }
 
   const body = parseResult.data
-  const log = logger.withTag('auth')
-  log.info(`Попытка регистрации: ${body.email}`, { ip: clientIp, userAgent })
 
-  // 3. Проверка существования пользователя
-  const existingUser = await prisma.user.findUnique({
+  // Проверка существования пользователя
+  const existingUser = await prisma.users.findUnique({
     where: { email: body.email }
   })
 
   if (existingUser) {
-    log.warn(`Неудачная регистрация: email ${body.email} уже зарегистрирован`, { ip: clientIp })
     throw createError({
       statusCode: 409,
-      statusMessage: 'Пользователь с таким email уже существует'
+      message: 'Пользователь с таким email уже существует'
     })
   }
 
-  // 4. Загрузка аватара через чистый хелпер
-  let avatarPath: string | null = null
+  // Находим роль "user" по умолчанию в таблице roles
+  const defaultRole = await prisma.roles.findUnique({
+    where: { role_name: 'user' }
+  })
 
+  if (!defaultRole) {
+    throw createError({
+      statusCode: 500,
+      message: 'Системная ошибка: роль по умолчанию не найдена'
+    })
+  }
+
+  // Загрузка аватара
+  let avatarPath: string | null = null
   if (avatarPart) {
     try {
       avatarPath = await uploadFileToMinio(
@@ -76,49 +84,42 @@ export default defineEventHandler(async (event) => {
         avatarPart.type,
         'avatars'
       )
-      log.info(`[MinIO] Аватар успешно загружен: ${avatarPath}`)
-    } catch (err) {
-      console.error('[MinIO Upload Error]:', err)
-      // Решаем: прерывать ли регистрацию при сбое загрузки аватара,
-      // или просто оставить аватар null. Обычно безопаснее продолжить без аватара или вернуть ошибку.
+    } catch (err: unknown) {
+      log.error('Ошибка загрузки аватара при регистрации:', { cause: err })
     }
   }
 
-  // 5. Создание пользователя в БД
   const hashedPassword = await bcrypt.hash(body.password, 10)
 
-  const user = await prisma.user.create({
+  // 1. Создаем пользователя с явно неактивным статусом (is_active: false)
+  const user = await prisma.users.create({
     data: {
-      name: body.name,
+      user_name: body.name,
       email: body.email,
       password: hashedPassword,
-      ruleName: 'user',
-      ...(avatarPath && { avatar: avatarPath })
-    }
+      role_id: defaultRole.role_id,
+      is_active: false, // 👈 Аккаунт заблокирован до подтверждения почты
+      ...(avatarPath && { avatar_path: avatarPath })
+    },
+    include: { role: true }
   })
 
-  // 6. Установка сессии
-  await setUserSession(event, {
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      rule_name: user.ruleName,
-      avatar: user.avatar || null
-    }
-  })
+  // 2. Генерируем токен и сохраняем в Redis на 24 часа
+  const verificationToken = randomBytes(32).toString('hex')
+  const redis = getRedisClient()
+  await redis.set(`verify:${verificationToken}`, user.user_id, 'EX', 86400)
 
-  log.info(`✅ Успешная регистрация: ${user.email}`, { userId: user.id })
+  // 3. Отправляем письмо с подтверждением
+  try {
+    await sendVerificationEmail(user.email, verificationToken)
+  } catch (err: unknown) {
+    log.error(`Не удалось отправить письмо для ${user.email}, но аккаунт создан:`, { cause: err })
+  }
+
   setResponseStatus(event, 201)
-
   return {
     success: true,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      rule_name: user.ruleName,
-      avatar: user.avatar || null
-    }
+    message: 'Регистрация прошла успешно. Пожалуйста, проверьте почту для подтверждения.',
+    redirectUrl: '/auth/verify-pending' // Подсказка фронтенду, куда перенаправить
   }
 })

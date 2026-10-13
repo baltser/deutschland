@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { logger } from '#server/utils/logger'
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Имя обязательно').optional(),
@@ -8,9 +9,11 @@ const profileSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
+  const log = logger.withTag('auth:profile')
+
   // 1. Проверяем сессию авторизованного пользователя
   const session = await requireUserSession(event)
-  const userId = session.user.id
+  const userId = Number(session.user.user_id)
 
   const body = await readBody(event)
   const parseResult = profileSchema.safeParse(body)
@@ -18,22 +21,26 @@ export default defineEventHandler(async (event) => {
   if (!parseResult.success) {
     throw createError({
       statusCode: 400,
-      statusMessage: parseResult.error.issues[0]?.message || 'Ошибка валидации данных'
+      message: parseResult.error.issues[0]?.message || 'Ошибка валидации данных'
     })
   }
 
   const { name, email, password } = parseResult.data
-  const updateData: { name?: string; email?: string; password?: string } = {}
+  const updateData: {
+    user_name?: string
+    email?: string
+    password?: string
+  } = {}
 
-  if (name) updateData.name = name
+  if (name) updateData.user_name = name
 
   if (email) {
     // Проверяем, не занят ли email кем-то другим
-    const existingUser = await prisma.user.findUnique({ where: { email } })
-    if (existingUser && String(existingUser.id) !== String(userId)) {
+    const existingUser = await prisma.users.findUnique({ where: { email } })
+    if (existingUser && existingUser.user_id !== userId) {
       throw createError({
         statusCode: 409,
-        statusMessage: 'Этот email уже используется другим пользователем'
+        message: 'Этот email уже используется другим пользователем'
       })
     }
     updateData.email = email
@@ -43,40 +50,48 @@ export default defineEventHandler(async (event) => {
     updateData.password = await bcrypt.hash(password, 10)
   }
 
-  // 2. Обновляем данные в базе
+  // 2. Обновляем данные в базе данных через модель users
   try {
-    const updatedUser = await prisma.user.update({
-      where: { id: String(userId) },
+    const updatedUser = await prisma.users.update({
+      where: { user_id: userId },
       data: updateData,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        ruleName: true,
-        avatar: true,
-        createdAt: true
+      include: {
+        role: { select: { role_name: true } }
       }
     })
 
     // 3. Синхронизируем изменения с текущей сессией
     await setUserSession(event, {
       user: {
-        ...session.user,
-        name: updatedUser.name,
+        user_id: updatedUser.user_id,
+        user_name: updatedUser.user_name,
         email: updatedUser.email,
-        avatar: updatedUser.avatar || null
+        role_id: updatedUser.role_id,
+        role_name: updatedUser.role.role_name,
+        avatar_path: updatedUser.avatar_path || null,
+        is_active: updatedUser.is_active
       }
     })
 
+    log.success(`✅ Профиль успешно обновлен для пользователя ID: ${userId}`)
+
     return {
       success: true,
-      user: updatedUser
+      user: {
+        user_id: updatedUser.user_id,
+        user_name: updatedUser.user_name,
+        email: updatedUser.email,
+        role_name: updatedUser.role.role_name,
+        avatar_path: updatedUser.avatar_path,
+        is_active: updatedUser.is_active
+      }
     }
   } catch (err: unknown) {
-    console.error('[Profile Update Error]:', err)
+    log.error('Ошибка при обновлении профиля:', { cause: err })
     throw createError({
       statusCode: 500,
-      statusMessage: 'Не удалось обновить профиль в базе данных'
+      message: 'Не удалось обновить профиль в базе данных',
+      cause: err
     })
   }
 })

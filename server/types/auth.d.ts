@@ -2,11 +2,12 @@ import '#auth-utils'
 
 declare module '#auth-utils' {
   interface User {
-    id: string | number
-    name: string
+    user_id: number
+    user_name: string
     email: string
-    ruleName?: string
-    rule_name?: string
-    avatar?: string | null
+    role_id: number
+    role_name: string
+    avatar_path?: string | null
+    is_active?: boolean
   }
 }

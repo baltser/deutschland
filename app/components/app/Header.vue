@@ -36,13 +36,16 @@ async function onLogout() {
       <div class="flex items-center gap-2">
         <div class="hidden md:flex items-center gap-2">
           <template v-if="loggedIn && user">
-            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-default">
+            <NuxtLink
+              to="/profile"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-default hover:border-primary transition-colors cursor-pointer"
+            >
               <UIcon name="i-lucide-user" class="w-4 h-4 text-primary" />
-              <span class="text-sm font-medium">{{ user.name }}</span>
+              <span class="text-sm font-medium">{{ user.user_name }}</span>
               <UBadge size="xs" variant="subtle" color="primary" class="uppercase">
-                {{ user.rule_name || user.ruleName }}
+                {{ user.role_name }}
               </UBadge>
-            </div>
+            </NuxtLink>
 
             <UButton
               color="neutral"
