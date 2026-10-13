@@ -30,8 +30,8 @@ export default defineNuxtConfig({
       }
     },
     redis: {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: Number(process.env.REDIS_PORT) || 6379,
+      host: process.env.REDIS_HOST || 'redis',
+      port: Number(process.env.REDIS_PORT || 6379),
     },
     minio: {
       endpoint: process.env.NUXT_MINIO_ENDPOINT || 'minio',
