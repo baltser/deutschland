@@ -1,4 +1,3 @@
-// server/utils/mail.ts
 import nodemailer from 'nodemailer'
 import { logger } from '#server/utils/logger'
 import { renderEmailTemplate, DEFAULT_VERIFICATION_TEMPLATE } from '#server/utils/emailTemplates'
@@ -29,19 +28,20 @@ export async function sendVerificationEmail(toEmail: string, token: string, user
   const subject = renderEmailTemplate(rawSubject, variables)
   const html = renderEmailTemplate(rawHtml, variables)
 
+  // Читаем параметры SMTP напрямую из process.env (актуально на момент запуска в Docker)
   const transporter = nodemailer.createTransport({
-    host: config.smtp.host,
-    port: config.smtp.port,
-    secure: config.smtp.secure,
+    host: process.env.SMTP_HOST || 'smtp.mail.ru',
+    port: Number(process.env.SMTP_PORT) || 465,
+    secure: process.env.SMTP_SECURE === 'true',
     auth: {
-      user: config.smtp.user,
-      pass: config.smtp.pass,
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD,
     },
   })
 
   try {
     const info = await transporter.sendMail({
-      from: config.smtp.from,
+      from: process.env.SMTP_FROM || '"Двор на замок" <motokawasaki@mail.ru>',
       to: toEmail,
       subject,
       html
