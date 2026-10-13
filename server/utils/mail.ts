@@ -1,12 +1,33 @@
+// server/utils/mail.ts
 import nodemailer from 'nodemailer'
 import { logger } from '#server/utils/logger'
+import { renderEmailTemplate, DEFAULT_VERIFICATION_TEMPLATE } from '#server/utils/emailTemplates'
 
-export async function sendVerificationEmail(toEmail: string, token: string) {
+export async function sendVerificationEmail(toEmail: string, token: string, userName?: string) {
   const config = useRuntimeConfig()
   const log = logger.withTag('mail')
 
   const appUrl = config.public.appUrl || 'http://localhost:3000'
   const verificationLink = `${appUrl}/api/auth/verify?token=${token}`
+
+  // 1. Извлекаем шаблон из базы данных
+  const dbTemplate = await prisma.email_templates.findUnique({
+    where: { slug: 'email_verification' }
+  })
+
+  const rawSubject = dbTemplate?.subject || DEFAULT_VERIFICATION_TEMPLATE.subject
+  const rawHtml = dbTemplate?.body_html || DEFAULT_VERIFICATION_TEMPLATE.body_html
+
+  // 2. Формируем контекст переменных
+  const variables = {
+    userName: userName || 'пользователь',
+    verificationLink,
+    appUrl
+  }
+
+  // 3. Рендерим тему и тело
+  const subject = renderEmailTemplate(rawSubject, variables)
+  const html = renderEmailTemplate(rawHtml, variables)
 
   const transporter = nodemailer.createTransport({
     host: config.smtp.host,
@@ -18,33 +39,14 @@ export async function sendVerificationEmail(toEmail: string, token: string) {
     },
   })
 
-  const mailOptions = {
-    from: config.smtp.from,
-    to: toEmail,
-    subject: 'Подтверждение регистрации',
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-        <h2 style="color: #333;">Добро пожаловать!</h2>
-        <p style="color: #555; font-size: 16px; line-height: 1.5;">
-          Спасибо за регистрацию. Для завершения создания аккаунта и подтверждения вашей электронной почты, пожалуйста, нажмите на кнопку ниже:
-        </p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${verificationLink}"
-             style="background-color: #00dc82; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px; display: inline-block;">
-            Подтвердить Email
-          </a>
-        </div>
-        <p style="color: #888; font-size: 12px; line-height: 1.4;">
-          Ссылка действительна в течение 24 часов.<br>
-          Если кнопка выше не работает, скопируйте и вставьте следующую ссылку в браузер:<br>
-          <a href="${verificationLink}" style="color: #00dc82;">${verificationLink}</a>
-        </p>
-      </div>
-    `
-  }
-
   try {
-    const info = await transporter.sendMail(mailOptions)
+    const info = await transporter.sendMail({
+      from: config.smtp.from,
+      to: toEmail,
+      subject,
+      html
+    })
+
     log.success(`Письмо подтверждения успешно отправлено на ${toEmail} (ID: ${info.messageId})`)
     return info
   } catch (err: unknown) {

@@ -29,3 +29,12 @@ model roles {
 
   @@map("roles")
 }
+
+model email_templates {
+  template_id Int      @id @default(autoincrement())
+  slug        String   @unique
+  title       String
+  subject     String
+  body_html   String   @db.Text
+  updated_at  DateTime @updatedAt @default(now())
+}
