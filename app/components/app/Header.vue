@@ -10,7 +10,7 @@ const navLinks = computed(() => {
   ]
 
   if (loggedIn.value) {
-    links.push({ label: 'Пользователи', to: '/admin/users', icon: 'i-lucide-users' })
+    links.push({ label: 'Админ панель', to: '/admin', icon: 'i-lucide-users' })
   }
 
   links.push({ label: 'Настройки', to: '/settings', icon: 'i-lucide-settings' })

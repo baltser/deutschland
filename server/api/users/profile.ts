@@ -4,7 +4,7 @@ import { logger } from '#server/utils/logger'
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Имя обязательно').optional(),
-  email: z.email('Некорректный формат email').optional(),
+  email: z.string().email('Некорректный формат email').optional(),
   password: z.string().min(6, 'Пароль должен быть не менее 6 символов').optional()
 })
 
@@ -15,7 +15,14 @@ export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
   const userId = Number(session.user.user_id)
 
-  const body = await readBody(event)
+  const rawBody = await readBody(event)
+
+  // Очищаем пустые строки (например, если пароль не менялся и пришел как ''),
+  // чтобы Zod не падал на валидации optional-полей
+  const body = Object.fromEntries(
+    Object.entries(rawBody).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+  )
+
   const parseResult = profileSchema.safeParse(body)
 
   if (!parseResult.success) {
@@ -50,6 +57,14 @@ export default defineEventHandler(async (event) => {
     updateData.password = await bcrypt.hash(password, 10)
   }
 
+  // Если вообще нечего обновлять
+  if (Object.keys(updateData).length === 0) {
+    return {
+      success: true,
+      message: 'Нет данных для обновления'
+    }
+  }
+
   // 2. Обновляем данные в базе данных через модель users
   try {
     const updatedUser = await prisma.users.update({
@@ -65,11 +80,12 @@ export default defineEventHandler(async (event) => {
       user: {
         user_id: updatedUser.user_id,
         user_name: updatedUser.user_name,
+        phone: updatedUser.phone,
         email: updatedUser.email,
         role_id: updatedUser.role_id,
         role_name: updatedUser.role.role_name,
         avatar_path: updatedUser.avatar_path || null,
-        is_active: updatedUser.is_active
+        activated_at: updatedUser.activated_at || null
       }
     })
 
@@ -83,7 +99,7 @@ export default defineEventHandler(async (event) => {
         email: updatedUser.email,
         role_name: updatedUser.role.role_name,
         avatar_path: updatedUser.avatar_path,
-        is_active: updatedUser.is_active
+        activated_at: updatedUser.activated_at
       }
     }
   } catch (err: unknown) {

@@ -1,92 +1,83 @@
 import { defineStore } from 'pinia'
 
-export interface UserItem {
+export interface AdminUserItem {
   user_id: number
   user_name: string
-  email: string
-  phone?: string | null
+  email?: string
+  phone: string
+  role_id?: number
   role_name: string
   avatar_path?: string | null
-  is_active: boolean
+  activated_at?: string | null
+  [key: string]: unknown
 }
 
-// Интерфейс для типизации ошибок от fetch-запросов
 interface ApiError {
-  data?: {
-    message?: string
-    statusMessage?: string
-  }
+  data?: { message?: string }
   message?: string
 }
 
 export const useAdminUsersStore = defineStore('adminUsers', () => {
   const toast = useToast()
 
-  const users = ref<UserItem[]>([])
+  const users = ref<AdminUserItem[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  const isModalOpen = ref(false)
-  const selectedUser = ref<UserItem | null>(null)
-  const selectedRole = ref<string>('user')
-  const isSaving = ref(false)
-
+  // 1. Загрузка списка пользователей
   async function fetchUsers() {
     loading.value = true
     error.value = null
     try {
-      const data = await $fetch<{ success: boolean; users: UserItem[] }>('/api/admin/users')
-      users.value = data.users
+      const data = await $fetch<{ success: boolean; users: AdminUserItem[] }>('/api/admin/users')
+      users.value = data.users || []
     } catch (err: unknown) {
       const apiErr = err as ApiError
       error.value = apiErr?.data?.message || apiErr?.message || 'Ошибка загрузки пользователей'
+      toast.add({
+        title: 'Ошибка',
+        description: error.value,
+        color: 'error',
+      })
     } finally {
       loading.value = false
     }
   }
 
-  function openEditModal(user: UserItem) {
-    selectedUser.value = { ...user }
-    selectedRole.value = user.role_name
-    isModalOpen.value = true
-  }
-
-  function updateUserAvatar(newAvatarPath: string) {
-    if (selectedUser.value) {
-      selectedUser.value.avatar_path = newAvatarPath
-    }
-  }
-
-  async function saveRole() {
-    if (!selectedUser.value) return
-
-    isSaving.value = true
+  // 2. Обновление пользователя (частичные данные через Partial)
+  async function updateUser(userId: number, payload: Partial<AdminUserItem>) {
     try {
-      await $fetch(`/api/admin/users/${selectedUser.value.user_id}`, {
+      const response = await $fetch<{ success: boolean; user: AdminUserItem }>(`/api/admin/users/${userId}`, {
         method: 'PATCH',
-        body: {
-          role_name: selectedRole.value,
-          avatar_path: selectedUser.value.avatar_path
-        },
+        body: payload,
       })
 
       toast.add({
         title: 'Успешно',
-        description: `Данные пользователя ${selectedUser.value.user_name} обновлены`,
+        description: 'Данные пользователя обновлены',
         color: 'success',
       })
 
-      isModalOpen.value = false
-      await fetchUsers()
+      // Мгновенно обновляем конкретного пользователя в локальном массиве без лишнего запроса
+      const index = users.value.findIndex(u => u.user_id === userId)
+      if (index !== -1 && response.user) {
+        users.value[index] = { ...users.value[index], ...response.user }
+      } else {
+        // Запасной вариант, если элемент не нашелся в массиве
+        await fetchUsers()
+      }
+
+      return true
     } catch (err: unknown) {
       const apiErr = err as ApiError
+      const errorMsg = apiErr?.data?.message || apiErr?.message || 'Не удалось обновить данные'
+
       toast.add({
         title: 'Ошибка',
-        description: apiErr?.data?.message || apiErr?.message || 'Не удалось обновить данные',
+        description: errorMsg,
         color: 'error',
       })
-    } finally {
-      isSaving.value = false
+      return false
     }
   }
 
@@ -94,13 +85,7 @@ export const useAdminUsersStore = defineStore('adminUsers', () => {
     users,
     loading,
     error,
-    isModalOpen,
-    selectedUser,
-    selectedRole,
-    isSaving,
     fetchUsers,
-    openEditModal,
-    updateUserAvatar,
-    saveRole
+    updateUser,
   }
 })

@@ -3,11 +3,12 @@ import '#auth-utils'
 declare module '#auth-utils' {
   interface User {
     user_id: number
-    user_name: string
-    email: string
+    phone: string
+    user_name?: string | null
+    email?: string | null
     role_id: number
-    role_name: string
+    role_name: string // Имя роли для проверок прав
     avatar_path?: string | null
-    is_active?: boolean
+    activated_at?: Date | null
   }
 }

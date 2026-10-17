@@ -20,7 +20,7 @@ const { state, isLoading, saveProfile, handleAvatarUpdated } = useProfile()
       <p class="text-sm text-gray-500 dark:text-gray-400">Управляйте своими личными данными и настройками безопасности</p>
     </div>
 
-    <!-- Карточка с аватаром -->
+    <!-- Карточка с текущими данными и аватаром -->
     <UCard>
       <div class="flex flex-col sm:flex-row items-center gap-6">
         <UserAvatar
@@ -32,7 +32,9 @@ const { state, isLoading, saveProfile, handleAvatarUpdated } = useProfile()
           @updated="handleAvatarUpdated"
         />
         <div class="space-y-1 text-center sm:text-left">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ user?.user_name }}</h2>
+          <!-- Отображаем текущее имя из сессии -->
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ user?.user_name || 'Пользователь' }}</h2>
+          <!-- Отображаем текущий email из сессии -->
           <p class="text-sm text-gray-500 dark:text-gray-400">{{ user?.email }}</p>
           <div class="pt-1">
             <UBadge
@@ -41,26 +43,26 @@ const { state, isLoading, saveProfile, handleAvatarUpdated } = useProfile()
               size="xs"
               class="uppercase"
             >
-              Роль: {{ user?.role_name || 'user' }}
+              Роль: {{ user?.role_name || user?.role || 'user' }}
             </UBadge>
           </div>
         </div>
       </div>
     </UCard>
 
-    <!-- Форма редактирования -->
+    <!-- Форма редактирования (инпуты изначально пустые) -->
     <UCard>
       <template #header>
         <h3 class="font-semibold text-gray-900 dark:text-white">Редактирование профиля</h3>
       </template>
 
       <UForm :state="state" class="space-y-4" @submit="saveProfile">
-        <UFormField label="Имя" name="name" required>
-          <UInput v-model="state.name" type="text" placeholder="Ваше имя" icon="i-lucide-user" class="w-full" />
+        <UFormField label="Новое имя" name="name">
+          <UInput v-model="state.name" type="text" placeholder="Введите новое имя, если хотите изменить" icon="i-lucide-user" class="w-full" />
         </UFormField>
 
-        <UFormField label="Email" name="email" required>
-          <UInput v-model="state.email" type="email" placeholder="name@example.com" icon="i-lucide-mail" class="w-full" />
+        <UFormField label="Новый email" name="email">
+          <UInput v-model="state.email" type="email" placeholder="Введите новый email, если хотите изменить" icon="i-lucide-mail" class="w-full" />
         </UFormField>
 
         <div class="border-t border-default pt-4 mt-4">

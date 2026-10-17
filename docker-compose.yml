@@ -56,7 +56,7 @@ services:
     image: cr.yandex/mirror/minio/minio:latest
     container_name: dnz-minio
     restart: unless-stopped
-    command: server /data --console-address ":9001"
+    command: server /data --console-addresses ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}

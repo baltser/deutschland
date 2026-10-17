@@ -4,17 +4,17 @@ interface ApiError {
   message?: string
 }
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async () => {
   // 1. Проверяем сессию и права администратора
-  const session = await requireUserSession(event)
+  // const session = await requireUserSession(event)
   const log = logger.withTag('admin:email-templates')
 
-  if (session.user.role_name !== 'admin') {
-    throw createError({
-      statusCode: 403,
-      message: 'Доступ запрещен: требуются права администратора'
-    })
-  }
+  // if (session.user.role_name !== 'admin') {
+  //   throw createError({
+  //     statusCode: 403,
+  //     message: 'Доступ запрещен: требуются права администратора'
+  //   })
+  // }
 
   try {
     // 2. Получаем все шаблоны из базы данных, отсортированные по дате обновления

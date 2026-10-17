@@ -1,4 +1,3 @@
-<!-- app/components/auth/AuthCard.vue -->
 <script setup lang="ts">
 defineProps<{
   title: string

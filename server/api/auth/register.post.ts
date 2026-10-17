@@ -1,125 +1,85 @@
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
-import { randomBytes } from 'node:crypto'
-import { uploadFileToMinio } from '#server/utils/minio'
-import { getRedisClient } from '#server/utils/redis'
 import { logger } from '#server/utils/logger'
-import { sendVerificationEmail } from '#server/utils/mail'
+import { normalizeAndValidatePhone } from '#server/utils/phone'
 
-const bodySchema = z.object({
-  name: z.string().min(1, 'Имя обязательно'),
-  email: z.email('Некорректный формат email'),
+const registerSchema = z.object({
+  phone: z.string().min(10, 'Введите номер телефона'),
   password: z.string().min(6, 'Пароль должен быть не менее 6 символов')
 })
 
 export default defineEventHandler(async (event) => {
   const log = logger.withTag('auth:register')
 
-  const parts = await readMultipartFormData(event)
-  if (!parts || parts.length === 0) {
-    throw createError({
-      statusCode: 400,
-      message: 'Форма не содержит данных'
-    })
-  }
+  const body = await readBody(event)
+  const parseResult = registerSchema.safeParse(body)
 
-  const rawFields: Record<string, string> = {}
-  let avatarPart: { filename: string; type: string; data: Buffer } | null = null
-
-  for (const part of parts) {
-    if (!part.name) continue
-
-    if (part.name === 'avatar' && part.filename && part.data.length > 0) {
-      avatarPart = {
-        filename: part.filename,
-        type: part.type || 'image/jpeg',
-        data: part.data
-      }
-    } else if (!part.filename) {
-      rawFields[part.name] = part.data.toString('utf-8')
-    }
-  }
-
-  const parseResult = bodySchema.safeParse(rawFields)
   if (!parseResult.success) {
     throw createError({
       statusCode: 400,
-      message: parseResult.error.issues[0]?.message || 'Ошибка валидации данных'
+      message: parseResult.error.issues[0]?.message || 'Неверный формат данных'
     })
   }
 
-  const body = parseResult.data
+  const phone = normalizeAndValidatePhone(parseResult.data.phone)
+  const { password } = parseResult.data
 
-  // Проверка существования пользователя
-  const existingUser = await prisma.users.findUnique({
-    where: { email: body.email }
+// 1. Ищем пользователя по номеру телефона
+  const existingUser = await prisma.users.findFirst({
+    where: { phone },
+    include: { role: true }
   })
 
-  if (existingUser) {
+  if (!existingUser) {
+    throw createError({
+      statusCode: 403,
+      message: 'Номер телефона не найден в системе. Обратитесь к администратору.'
+    })
+  }
+
+  // 2. Универсальная проверка: если у пользователя УЖЕ есть пароль, значит аккаунт активен
+  if (existingUser.activated_at !== null) {
     throw createError({
       statusCode: 409,
-      message: 'Пользователь с таким email уже существует'
+      message: 'Этот аккаунт уже активирован. Пожалуйста, выполните вход.'
     })
   }
 
-  // Находим роль "user" по умолчанию в таблице roles
-  const defaultRole = await prisma.roles.findUnique({
-    where: { role_name: 'user' }
-  })
+  // 3. Хешируем пароль и активируем аккаунт
+  const hashedPassword = await bcrypt.hash(password, 10)
 
-  if (!defaultRole) {
-    throw createError({
-      statusCode: 500,
-      message: 'Системная ошибка: роль по умолчанию не найдена'
-    })
-  }
-
-  // Загрузка аватара
-  let avatarPath: string | null = null
-  if (avatarPart) {
-    try {
-      avatarPath = await uploadFileToMinio(
-        avatarPart.data,
-        avatarPart.filename,
-        avatarPart.type,
-        'avatars'
-      )
-    } catch (err: unknown) {
-      log.error('Ошибка загрузки аватара при регистрации:', { cause: err })
-    }
-  }
-
-  const hashedPassword = await bcrypt.hash(body.password, 10)
-
-  // 1. Создаем пользователя с явно неактивным статусом (is_active: false)
-  const user = await prisma.users.create({
+  const updatedUser = await prisma.users.update({
+    where: { user_id: existingUser.user_id },
     data: {
-      user_name: body.name,
-      email: body.email,
       password: hashedPassword,
-      role_id: defaultRole.role_id,
-      is_active: false, // 👈 Аккаунт заблокирован до подтверждения почты
-      ...(avatarPath && { avatar_path: avatarPath })
+      activated_at: new Date()
     },
     include: { role: true }
   })
 
-  // 2. Генерируем токен и сохраняем в Redis на 24 часа
-  const verificationToken = randomBytes(32).toString('hex')
-  const redis = getRedisClient()
-  await redis.set(`verify:${verificationToken}`, user.user_id, 'EX', 86400)
+  // 4. Сразу авторизуем пользователя
+  await setUserSession(event, {
+    user: {
+      user_id: updatedUser.user_id,
+      phone: updatedUser.phone,
+      user_name: updatedUser.user_name || 'Клиент',
+      email: updatedUser.email || null,
+      role_id: updatedUser.role_id,
+      role_name: updatedUser.role.role_name,
+      avatar_path: updatedUser.avatar_path || null
+    }
+  })
 
-  // 3. Отправляем письмо с подтверждением
-  try {
-    await sendVerificationEmail(user.email, verificationToken)
-  } catch (err: unknown) {
-    log.error(`Не удалось отправить письмо для ${user.email}, но аккаунт создан:`, { cause: err })
-  }
+  log.success(`✅ Клиент успешно активировал аккаунт: ${updatedUser.phone}`)
 
-  setResponseStatus(event, 201)
   return {
     success: true,
-    message: 'Регистрация прошла успешно. Пожалуйста, проверьте почту для подтверждения.',
-    redirectUrl: '/auth/verify-pending' // Подсказка фронтенду, куда перенаправить
+    message: 'Регистрация прошла успешно!',
+    user: {
+      user_id: updatedUser.user_id,
+      user_name: updatedUser.user_name,
+      phone: updatedUser.phone,
+      role: updatedUser.role.role_name
+    }
   }
 })

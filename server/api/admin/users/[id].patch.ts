@@ -25,14 +25,25 @@ export default defineEventHandler(async (event) => {
   const userId = Number(id)
 
   const updateData: {
+    user_name?: string
     role_id?: number
-    avatar_path?: string
+    avatar_path?: string | null
   } = {}
 
-  // 3. Если передано имя роли, находим её ID в таблице roles
+  // 3. Если передано имя, добавляем его в обновление (с проверкой на строку)
+  if (body.user_name !== undefined && body.user_name !== null) {
+    updateData.user_name = String(body.user_name).trim()
+  }
+
+  // 4. Если передано имя роли, находим её ID без учета регистра
   if (body.role_name) {
-    const targetRole = await prisma.roles.findUnique({
-      where: { role_name: body.role_name }
+    const targetRole = await prisma.roles.findFirst({
+      where: {
+        role_name: {
+          equals: String(body.role_name).trim(),
+          mode: 'insensitive' // Позволяет находить 'admin', 'Admin' и 'ADMIN'
+        }
+      }
     })
 
     if (!targetRole) {
@@ -45,13 +56,13 @@ export default defineEventHandler(async (event) => {
     updateData.role_id = targetRole.role_id
   }
 
-  // 4. Если передан новый путь к аватару
+  // 5. Если передан новый путь к аватару (или null для удаления)
   if (body.avatar_path !== undefined) {
     updateData.avatar_path = body.avatar_path
   }
 
   try {
-    // 5. Обновляем пользователя в базе данных
+    // 6. Обновляем пользователя в базе данных
     const updatedUser = await prisma.users.update({
       where: { user_id: userId },
       data: updateData,
@@ -72,8 +83,7 @@ export default defineEventHandler(async (event) => {
         email: updatedUser.email,
         phone: updatedUser.phone,
         role_name: updatedUser.role.role_name,
-        avatar_path: updatedUser.avatar_path,
-        is_active: updatedUser.is_active
+        avatar_path: updatedUser.avatar_path
       }
     }
   } catch (err: unknown) {

@@ -41,10 +41,10 @@ export default defineEventHandler(async (event) => {
   }
 
   // 2. Активируем аккаунт, если еще не активирован
-  if (!user.is_active) {
+  if (!user.activated_at) {
     await prisma.users.update({
       where: { user_id: userId },
-      data: { is_active: true }
+      data: { activated_at: new Date() }
     })
   }
 
@@ -56,11 +56,12 @@ export default defineEventHandler(async (event) => {
     user: {
       user_id: user.user_id,
       user_name: user.user_name,
+      phone: user.phone,
       email: user.email,
       role_id: user.role_id,
       role_name: user.role.role_name,
       avatar_path: user.avatar_path || null,
-      is_active: true
+      activated_at: user.activated_at,
     }
   })
 

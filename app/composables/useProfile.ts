@@ -1,23 +1,16 @@
 export function useProfile() {
-  const { user, fetch: refreshSession } = useUserSession()
+  const { fetch: refreshSession } = useUserSession()
   const toast = useToast()
 
+  // Изначально поля формы пустые
   const state = reactive({
-    name: user.value?.name || '',
-    email: user.value?.email || '',
+    name: '',
+    email: '',
     password: '',
     confirmPassword: ''
   })
 
   const isLoading = ref(false)
-
-  // Синхронизируем локальное состояние при обновлении данных пользователя в сессии
-  watchEffect(() => {
-    if (user.value) {
-      if (!state.name) state.name = user.value.name
-      if (!state.email) state.email = user.value.email
-    }
-  })
 
   async function saveProfile() {
     if (state.password && state.password !== state.confirmPassword) {
@@ -32,15 +25,17 @@ export function useProfile() {
     isLoading.value = true
 
     try {
+      // Отправляем на бэкенд только те поля, которые пользователь заполнил
       await $fetch('/api/users/profile', {
         method: 'PATCH',
         body: {
-          name: state.name,
-          email: state.email,
+          ...(state.name ? { name: state.name } : {}),
+          ...(state.email ? { email: state.email } : {}),
           ...(state.password ? { password: state.password } : {})
         }
       })
 
+      // Обновляем сессию, чтобы карточка сверху сразу показала новое имя/email (если они менялись)
       await refreshSession()
 
       toast.add({
@@ -49,6 +44,9 @@ export function useProfile() {
         color: 'success'
       })
 
+      // Очищаем форму
+      state.name = ''
+      state.email = ''
       state.password = ''
       state.confirmPassword = ''
       return true

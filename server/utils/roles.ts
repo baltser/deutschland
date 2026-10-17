@@ -3,15 +3,22 @@ import { logger } from '#server/utils/logger'
 export async function ensureDefaultRoles() {
   const log = logger.withTag('roles:seed')
 
-  const defaultRoles = ['user', 'admin', 'moderator']
+  const defaultRoles = ['installer', 'admin', 'client']
 
   for (const roleName of defaultRoles) {
     try {
-      await prisma.roles.upsert({
-        where: { role_name: roleName },
-        update: {}, // Если роль уже есть, ничего не меняем
-        create: { role_name: roleName } // Если нет — создаем
+      // 1. Проверяем, существует ли уже такая роль через findFirst (работает с любыми полями)
+      const existingRole = await prisma.roles.findFirst({
+        where: { role_name: roleName }
       })
+
+      // 2. Если роли нет — создаем её
+      if (!existingRole) {
+        await prisma.roles.create({
+          data: { role_name: roleName }
+        })
+        log.info(`Создана роль: "${roleName}"`)
+      }
     } catch (err: unknown) {
       log.error(`Не удалось создать роль "${roleName}":`, { cause: err })
       throw err
