@@ -26,7 +26,7 @@ export async function ensureDefaultAdminUser() {
   })
 
   if (!existingAdmin) {
-    const adminPhone = process.env.ADMIN_PHONE || '+49000000000'
+    const adminPhone = process.env.ADMIN_PHONE || '79000000001'
     const adminName = process.env.ADMIN_NAME || 'System Administrator'
 
     // Проверяем, не занят ли этот телефон
