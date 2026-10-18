@@ -40,6 +40,7 @@ export async function ensureDefaultAdminUser() {
           user_name: adminName,
           phone: adminPhone,
           role_id: adminRole.role_id,
+          activated_at: null
         }
       })
       log.success(`✅ Создан дефолтный администратор. Телефон: ${adminPhone}`)
