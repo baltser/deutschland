@@ -1,8 +1,9 @@
 import { getRedisClient } from '~~/server/utils/redis'
 import { ensureBucket } from '~~/server/utils/minio'
 import { logger } from '~~/server/utils/logger'
-import {ensureDefaultRoles} from "#server/utils/roles.ts";
-import {ensureDefaultEmailTemplate} from "#server/utils/emailTemplates.ts";
+import { ensureDefaultRoles } from "#server/utils/roles.ts"
+import { ensureDefaultEmailTemplate } from "#server/utils/emailTemplates.ts"
+import { ensureDefaultAdminUser } from "#server/utils/adminUser.ts"
 
 export default defineNitroPlugin(async () => {
   const log = logger.withTag('startup')
@@ -25,12 +26,21 @@ export default defineNitroPlugin(async () => {
   }
 
   try {
+    await ensureDefaultAdminUser()
+    log.info('Администратор: Проверен / создан успешно')
+  } catch (err) {
+    log.error('❌ Критическая ошибка при инициализации администратора:', { cause: err })
+    throw new Error('Startup aborted: Failed to seed admin user', { cause: err })
+  }
+
+  try {
     await ensureDefaultEmailTemplate()
     log.info('Шаблоны писем: Проверены / инициализированы успешно')
   } catch (err) {
     log.error('❌ Критическая ошибка при инициализации шаблонов писем:', { cause: err })
     throw new Error('Startup aborted: Failed to seed email templates', { cause: err })
   }
+
   // 2. Проверка Redis
   try {
     const redis = getRedisClient()
