@@ -1,3 +1,4 @@
+
 # 🚀 DNZ Platform
 
 [![Nuxt 4](https://img.shields.io/badge/Nuxt-4.x-00DC82?logo=nuxt&labelColor=020420)](https://nuxt.com)
@@ -6,9 +7,8 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-4169E1?logo=postgresql&labelColor=020420)](https://www.postgresql.org)
 [![MinIO](https://img.shields.io/badge/MinIO-Storage-C72C48?logo=minio&labelColor=020420)](https://min.io)
 [![Redis](https://img.shields.io/badge/Redis-Cache%2FStore-DC382D?logo=redis&labelColor=020420)](https://redis.io)
-[![Nodemailer](https://img.shields.io/badge/Nodemailer-SMTP-339933?logo=nodedotjs&labelColor=020420)](https://nodemailer.com)
 
-Современное веб-приложение на базе **Nuxt 4**, включающее в себя безопасную систему аутентификации, управление пользователями, загрузку файлов в объектное хранилище MinIO и административную панель.
+Современное веб-приложение на базе **Nuxt 4**, включающее безопасную систему сессионной аутентификации, подтверждение телефонов через **uCaller**, управление ролями, связями пользователей с объектами/адресами, загрузку файлов в MinIO и административную панель.
 
 ---
 
@@ -16,47 +16,43 @@
 
 * **Фронтенд:** Nuxt 4, Vue 3 (Composition API), Tailwind CSS, Nuxt UI.
 * **Управление состоянием:** Pinia (`app/stores/`).
-* **Аутентификация:** `nuxt-auth-utils` (сессионная авторизация).
-* **Бэкенд (Nitro Server):** Встроенные API-эндпоинты Nuxt (`server/api/`).
-* **База данных:** PostgreSQL + Prisma ORM.
-* **Хранилище медиафайлов:** MinIO (изображения, аватары, документы).
+* **Аутентификация & Верификация:** `nuxt-auth-utils` + **uCaller.ru** (Flash-call авторизация).
+* **Бэкенд (Nitro Server):** Встроенные API-эндпоинты Nuxt (`server/api/`) с автоматическим сидированием при старте.
+* **База данных:** PostgreSQL + Prisma ORM (модели: `users`, `roles`, `addresses`, `clients_x_addresses`, `email_templates`).
+* **Хранилище медиафайлов:** MinIO (аватары, документы).
+* **Кэш / Токены:** Redis.
 
 ---
 
 ## 📂 Структура проекта
 
-Проект разделен на клиентскую (`app/`) и серверную (`server/`) части:
-
 ```text
 deutschland/
 ├── app/                  # Клиентская часть (Nuxt)
 │   ├── components/       # UI-компоненты (admin/, auth/, user/, app/)
-│   ├── composables/      # Бизнес-логика и композисы (useAuth.ts)
-│   ├── stores/           # Состояние Pinia (adminUsers.ts)
+│   ├── composables/      # Бизнес-логика и композисы
+│   ├── stores/           # Состояние Pinia
 │   ├── pages/            # Файловый роутинг (auth/, admin/, profile/)
 │   └── layouts/          # Макеты страниц (default.vue, auth.vue)
 ├── server/               # Серверная часть (Nitro API)
 │   ├── api/              # Эндпоинты (auth/, users/, admin/, files/)
-│   └── utils/            # Системные синглтоны (prisma.ts, minio.ts)
+│   ├── plugins/          # Стартовые плагины инициализации (startup.ts)
+│   └── utils/            # Системные синглтоны и хелперы (prisma, minio, redis, roles, adminUser)
 ├── prisma/               # Схема базы данных и миграции
 ├── docs/                 # Техническая документация для разработчиков
-└── docker-compose.yml    # Инфраструктура (PostgreSQL, MinIO)
+└── docker-compose.yml    # Инфраструктура (PostgreSQL, MinIO, Redis)
 ```
 ## ⚙️ Быстрый старт (Локальная разработка)
 
-Инфраструктура (база данных и файловое хранилище) запускается через Docker, а само приложение Nuxt — локально на хосте с поддержкой Hot-Reload.
-1. Клонирование репозитория и установка зависимостей
-```Bash
-
+Клонирование репозитория и установка зависимостей:
+  ```Bash
 git clone <url-репозитория>
 cd deutschland
 pnpm install
 ```
-2. Настройка окружения
-
-Создайте файл .env в корне проекта на основе следующего примера:
+Настройка окружения (.env):
+Создайте файл .env в корне проекта, указав доступы к БД, MinIO, Redis и ключи uCaller:
 ```Code-Snippet
-
 NUXT_SESSION_PASSWORD=random_secure_32_character_string_here
 DATABASE_URL="postgresql://dnz_user:dnz_password@localhost:5432/dnz_db?schema=public"
 
@@ -65,6 +61,14 @@ NODE_ENV=development
 POSTGRES_USER=dnz_user
 POSTGRES_PASSWORD=dnz_password
 POSTGRES_DB=dnz_db
+
+# uCaller Config
+UCALLER_SECRET_KEY=your_ucaller_secret_key
+UCALLER_SERVICE_ID=your_ucaller_service_id
+
+# Default Admin Credentials
+ADMIN_PHONE="+49000000000"
+ADMIN_NAME="System Administrator"
 
 # MinIO Config
 MINIO_ROOT_USER=admin
@@ -76,43 +80,35 @@ NUXT_MINIO_ACCESS_KEY=admin
 NUXT_MINIO_SECRET_KEY=password12345
 NUXT_MINIO_BUCKET=dnz-uploads
 ```
-3. Запуск инфраструктуры (Docker)
-
-``docker compose up -d postgres minio redis``
-
-4. Инициализация базы данных Prisma
-```Bash 
+Запуск инфраструктуры (Docker):
+```Bash
+docker compose up -d postgres minio redis
+```
+Инициализация базы данных Prisma:
+```Bash
 npx prisma db push
 npx prisma generate
 ```
-5. Запуск сервера разработки
+Запуск сервера разработки:
 ```Bash
-
 pnpm dev
 ```
-Приложение будет доступно по адресу http://localhost:3000.
+  Приложение будет доступно по адресу http://localhost:3000.
 
----
 ## 📖 Техническая документация
 
-Подробная документация по архитектуре, контрактам API и базе данных находится в директории docs/:
-```
-docs/
-├── architecture.md       # Общая архитектура и структура слоев
-├── api-endpoints.md      # Спецификация API (auth, users, admin, files)
-├── database.md           # Схема БД (модели users, roles) и связи
-├── development.md        # Инструкция для локальной разработки
-├── deployment.md         # 🚀 Инструкция по деплою (Docker, Nginx, SSL)
-├── auth-flow.md          # 🔒 Аутентификация, сессии и подтверждение email
-└── storage.md            # 📁 Управление файлами и интеграция с MinIO
-```
-🛠 Полезные команды
+Подробная документация находится в директории docs/:
 
-    pnpm lint — Проверка кода линтером (ESLint).
+    docs/architecture.md — Архитектура проекта и структура слоев.
 
-    pnpm run typecheck — Проверка типов TypeScript.
+    docs/api-endpoints.md — Спецификация API (auth с uCaller, users, admin, files).
 
-    pnpm build — Сборка приложения для продакшна.
+    docs/database.md — Схема БД (модели users, roles, addresses, clients_x_addresses, email_templates).
 
+    docs/development.md — Инструкция для локальной разработки.
 
----
+    docs/deployment.md — Инструкция по деплою (Docker, Nginx, SSL).
+
+    docs/auth-flow.md — Аутентификация, сессии и flash-call верификация через uCaller.
+
+    docs/storage.md — Управление файлами и интеграция с MinIO.

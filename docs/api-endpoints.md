@@ -4,29 +4,29 @@
 
 ---
 
-## 1. Авторизация (`/api/auth/`)
+## 1. Авторизация и верификация (`/api/auth/`)
 
-### `POST /api/auth/register`
-Регистрация нового пользователя с опциональной загрузкой аватара.
-* **Content-Type:** `multipart/form-data`
-* **Body (FormData):**
-  * `name` (string, required) — Имя пользователя
-  * `email` (string, required, unique) — Email
-  * `password` (string, required) — Пароль (минимум 6 символов)
-  * `avatar` (File, optional) — Изображение (JPG, PNG, WEBP, до 2 МБ)
-* **Response:** `200 OK` (успешная авторизация и установка сессии).
-
-### `POST /api/auth/login`
-Авторизация существующего пользователя.
+### `POST /api/auth/send-code`
+Инициализация звонка подтверждения номера телефона через сервис **uCaller**.
 * **Content-Type:** `application/json`
 * **Body (JSON):**
-  ```json
+```json
   {
-    "email": "user@example.com",
-    "password": "secretpassword"
+    "phone": "79112223344",
+    "password": "securepassword",
+    "email": "user@example.com"
   }
-  ```
-    Response: 200 OK.
+```
+Response: 200 OK
+
+```json
+  {
+  "success": true,
+  "message": "Звонок отправлен",
+  "ucallerId": "..."
+  }
+```
+
 
 ## 2. Пользователи и файлы (/api/users/, /api/files/)
   `` POST /api/users/[id]/avatar``
@@ -74,12 +74,17 @@
 
     Auth: Права администратора.
 
-    Body (JSON):
-```JSON
-
+Body (JSON):
+```json
 {
 "ruleName": "admin",
 "avatar": "avatars/user_123.jpg"
 }
 ```
-Response: { "success": true, "user": { ... } }
+Response: 
+```json
+{ 
+  "success": true, 
+  "user": "..." 
+}
+```
