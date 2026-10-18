@@ -4,13 +4,13 @@ import { logger } from '#server/utils/logger'
 export async function ensureDefaultAdminUser() {
   const log = logger.withTag('admin-seed')
 
-  // 1. Ищем роль администратора по точному списку возможных системных названий
+  // 1. Ищем роль администратора по точному списку системных названий (используем role_name)
   const adminRole = await prisma.roles.findFirst({
     where: {
       OR: [
-        { name: { equals: 'admin', mode: 'insensitive' } },
-        { name: { equals: 'administrator', mode: 'insensitive' } },
-        { name: { equals: 'администратор', mode: 'insensitive' } }
+        { role_name: { equals: 'admin', mode: 'insensitive' } },
+        { role_name: { equals: 'administrator', mode: 'insensitive' } },
+        { role_name: { equals: 'администратор', mode: 'insensitive' } }
       ]
     }
   })
@@ -26,7 +26,7 @@ export async function ensureDefaultAdminUser() {
   })
 
   if (!existingAdmin) {
-    const adminPhone = process.env.ADMIN_PHONE || '79000000001'
+    const adminPhone = process.env.ADMIN_PHONE || '+49000000000'
     const adminName = process.env.ADMIN_NAME || 'System Administrator'
 
     // Проверяем, не занят ли этот телефон
