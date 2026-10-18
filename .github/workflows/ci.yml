@@ -82,5 +82,12 @@ jobs:
             cd ~/dnz
             git pull origin master
             docker compose pull
+
+            # 1. Поднимаем только базы и сервисы
+            docker compose up -d postgres redis minio
+
+            # 2. Применяем миграции ДО запуска самого приложения
+            docker compose run --rm app ./node_modules/.bin/prisma migrate deploy
+
+            # 3. Теперь запускаем приложение и все сервисы целиком
             docker compose up -d --remove-orphans
-            docker compose exec -T app ./node_modules/.bin/prisma migrate deploy

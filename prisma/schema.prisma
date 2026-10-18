@@ -56,37 +56,3 @@ model email_templates {
   body_html   String   @db.Text
   updated_at  DateTime @updatedAt @default(now())
 }
-
-// model users {
-//   user_id     Int     @id @default(autoincrement())
-//   user_name   String
-//   phone       String  @unique
-//   email       String? @unique
-//   password    String
-//   role_id     Int
-//   avatar_path String?
-//
-//   role      roles               @relation(fields: [role_id], references: [role_id])
-//   addresses users_x_addresses[]
-// }
-//
-// model addresses {
-//   address_id   Int                 @id @default(autoincrement())
-//   address_name String
-//   users        users_x_addresses[]
-// }
-//
-// model users_x_addresses {
-//   user_id    Int
-//   address_id Int
-//   user       users     @relation(fields: [user_id], references: [user_id])
-//   addresses    addresses @relation(fields: [address_id], references: [address_id])
-//
-//   @@id([user_id, address_id])
-// }
-//
-// model roles {
-//   role_id   Int     @id @default(autoincrement())
-//   role_name String
-//   users     users[]
-// }
