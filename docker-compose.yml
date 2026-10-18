@@ -24,6 +24,8 @@ services:
     image: ghcr.io/baltser/deutschland:latest
     container_name: dnz_app
     restart: always
+    env_file:
+      - .env
     ports:
       - "3000:3000"
     environment:
@@ -42,6 +44,10 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       SMTP_FROM: ${SMTP_FROM}
       NUXT_PUBLIC_APP_URL: ${NUXT_PUBLIC_APP_URL}
+      UCALLER_SECRET_KEY: ${UCALLER_SECRET_KEY}
+      UCALLER_SERVICE_ID: ${UCALLER_SERVICE_ID}
+      ADMIN_PHONE: ${ADMIN_PHONE}
+      ADMIN_NAME: ${ADMIN_NAME}
     networks:
       - dnz-network
 #    command: sh -c "npx prisma db push && node .output/server/index.mjs"
