@@ -12,19 +12,17 @@ async function handleLogout() {
     <!-- Шапка личного кабинета клиента -->
     <header class="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-4 flex items-center justify-between shadow-xs">
       <div class="flex items-center gap-3">
-        <div class="p-2.5 rounded-xl bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400">
-          <UIcon name="i-lucide-home" class="w-5 h-5" />
-        </div>
+          <AppLogo/>
+
         <div>
           <h1 class="font-bold text-sm tracking-tight">Личный кабинет</h1>
-          <p class="text-xs text-neutral-500 dark:text-neutral-400">Двор на замок</p>
         </div>
       </div>
 
       <!-- Профиль и выход -->
       <div class="flex items-center gap-4">
         <div class="hidden sm:block text-right">
-          <p class="text-xs font-medium">{{ user?.name || 'Клиент' }}</p>
+          <p class="text-xs font-medium">{{ user?.user_name || 'Клиент' }}</p>
           <p class="text-[10px] text-neutral-400">{{ user?.phone }}</p>
         </div>
         <UButton
