@@ -4,7 +4,7 @@ import { logger } from '#server/utils/logger'
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Имя обязательно').optional(),
-  email: z.string().email('Некорректный формат email').optional(),
+  email: z.email('Некорректный формат email').optional(),
   password: z.string().min(6, 'Пароль должен быть не менее 6 символов').optional()
 })
 

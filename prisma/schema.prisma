@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Типы поддерживаемых устройств
+enum DeviceType {
+  CAMERA
+  PANEL
+}
+
 // 1. Роли в системе (admin, installer, manager, client)
 model roles {
   role_id   Int     @id @default(autoincrement())
@@ -35,6 +41,7 @@ model addresses {
   address_name String @unique @db.VarChar(255) // Физический адрес
 
   clients clients_x_addresses[]
+  devices devices[]
 }
 
 // 4. Привязка людей (клиентов) к адресам (Многие-ко-многим)
@@ -48,6 +55,21 @@ model clients_x_addresses {
   @@id([user_id, address_id])
 }
 
+// 5. Устройства на объектах (Камеры, Вызывные панели и др.)
+model devices {
+  device_id   Int        @id @default(autoincrement())
+  device_name String
+  device_type DeviceType @default(CAMERA)
+  ip          String?    @db.VarChar(45)
+  port        Int?
+  login       String?
+  password    String?
+  address_id  Int
+
+  address addresses @relation(fields: [address_id], references: [address_id], onDelete: Cascade)
+}
+
+// 6. Шаблоны писем
 model email_templates {
   template_id Int      @id @default(autoincrement())
   slug        String   @unique

@@ -1,39 +1,31 @@
-export default defineEventHandler(async (event) => {
-  const id = getRouterParam(event, 'id')
-  const addressId = Number(id)
+import { prisma } from '#server/utils/prisma'
 
-  if (isNaN(addressId)) {
-    throw createError({
-      statusCode: 400,
-      message: 'Некорректный ID адреса'
-    })
+export default defineEventHandler(async (event) => {
+  await requireUserSession(event)
+
+  const id = Number(event.context.params?.id)
+  if (isNaN(id)) {
+    throw createError({ statusCode: 400, message: 'Некорректный ID' })
   }
 
   const address = await prisma.addresses.findUnique({
-    where: { address_id: addressId },
+    where: { address_id: id },
     include: {
       clients: {
         include: {
-          user: {
-            select: {
-              user_id: true,
-              user_name: true,
-              phone: true,
-              email: true,
-              role_id: true
-            }
-          }
-        }
-      }
-    }
+          user: true,
+        },
+      },
+      devices: true,
+    },
   })
 
   if (!address) {
-    throw createError({
-      statusCode: 404,
-      message: 'Адрес не найден'
-    })
+    throw createError({ statusCode: 404, message: 'Адрес не найден' })
   }
 
-  return { address }
+  return {
+    success: true,
+    address,
+  }
 })

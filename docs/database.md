@@ -88,3 +88,22 @@ npx prisma generate
 ```Bash
 npx prisma migrate deploy
 ```
+### Enum `DeviceType`
+Поддерживаемые типы оборудования: `CAMERA` (камера), `PANEL` (вызывная панель).
+
+### Модель `devices` (Устройства на объектах)
+Хранит параметры оборудования, установленного на конкретных адресах.
+```prisma
+model devices {
+  device_id   Int        @id @default(autoincrement())
+  device_name String
+  device_type DeviceType @default(CAMERA)
+  ip          String?    @db.VarChar(45)
+  port        Int?
+  login       String?
+  password    String?
+  address_id  Int
+
+  address     addresses  @relation(fields: [address_id], references: [address_id], onDelete: Cascade)
+}
+```

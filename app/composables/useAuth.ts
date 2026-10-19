@@ -29,6 +29,7 @@ export const useAuth = () => {
   }
 
   // Вход в систему
+// Вход в систему
   async function login(credentials: LoginCredentials) {
     errorMessage.value = ''
     isLoading.value = true
@@ -38,8 +39,21 @@ export const useAuth = () => {
         method: 'POST',
         body: credentials
       })
+
+      // Обновляем сессию, чтобы получить актуальные данные пользователя
       await refreshSession()
-      await navigateTo('/')
+
+      // Получаем текущего пользователя из сессии
+      const { user } = useUserSession()
+      const roleName = (user.value as { role_name?: string })?.role_name
+
+      // Умный редирект в зависимости от роли
+      if (roleName === 'client') {
+        await navigateTo('/client')
+      } else {
+        await navigateTo('/admin/addresses')
+      }
+
     } catch (err: unknown) {
       handleAuthError(err, 'Ошибка входа в систему')
     } finally {

@@ -3,7 +3,7 @@ export interface ClientAddressItem {
   address_id: number
   address?: {
     address_id: number
-    address: string
+    address_name: string
   }
 }
 
@@ -28,7 +28,7 @@ defineProps<{
       >
         <div class="flex items-center gap-2 min-w-0">
           <UIcon name="i-lucide-map-pin" class="w-4 h-4 text-primary shrink-0" />
-          <span class="truncate font-medium">{{ item.address?.address || `Объект #${item.address_id}` }}</span>
+          <span class="truncate font-medium">{{ item.address?.address_name || `Объект #${item.address_id}` }}</span>
         </div>
         <UBadge color="neutral" variant="subtle" size="xs" class="shrink-0">
           #{{ item.address_id }}
