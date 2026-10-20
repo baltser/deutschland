@@ -13,8 +13,6 @@ const navLinks = computed(() => {
     links.push({ label: 'Админ панель', to: '/admin', icon: 'i-lucide-users' })
   }
 
-  links.push({ label: 'Настройки', to: '/settings', icon: 'i-lucide-settings' })
-
   return links
 })
 
@@ -26,26 +24,27 @@ async function onLogout() {
 </script>
 
 <template>
-  <header class="sticky top-0 z-40 bg-[var(--ui-bg)]/80 backdrop-blur border-b border-default">
+  <header class="sticky top-0 z-40 bg-[var(--ui-bg)]/85 backdrop-blur border-b border-default">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
       <AppLogo />
+
+      <!-- Навигация по центру/слева -->
       <nav class="hidden md:flex items-center gap-1">
         <UNavigationMenu :items="navLinks" />
       </nav>
 
+      <!-- Правая часть шапки -->
       <div class="flex items-center gap-2">
+        <!-- Десктопный блок действий -->
         <div class="hidden md:flex items-center gap-2">
+          <!-- Кнопка темы на десктопе встроена в общий ряд -->
+          <UColorModeButton />
+
           <template v-if="loggedIn && user">
-            <NuxtLink
-              to="/profile"
-              class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-default hover:border-primary transition-colors cursor-pointer"
-            >
-              <UIcon name="i-lucide-user" class="w-4 h-4 text-primary" />
-              <span class="text-sm font-medium">{{ user.user_name }}</span>
-              <UBadge size="xs" variant="subtle" color="primary" class="uppercase">
-                {{ user.role_name }}
-              </UBadge>
-            </NuxtLink>
+            <UserProfileBadge
+              :user-name="user.user_name"
+              :role-name="user.role_name"
+            />
 
             <UButton
               color="neutral"
@@ -69,6 +68,7 @@ async function onLogout() {
           </template>
         </div>
 
+        <!-- Кнопка открытия мобильного меню -->
         <UButton
           icon="i-lucide-menu"
           color="neutral"
@@ -81,14 +81,23 @@ async function onLogout() {
     </div>
   </header>
 
-  <USlideover v-model:open="isMenuOpen" title="Навигация">
+  <!-- Мобильное меню (Slideover) -->
+  <USlideover v-model:open="isMenuOpen" title="Меню навигации">
     <template #body>
       <div class="p-4 flex flex-col justify-between h-full gap-6">
-        <UNavigationMenu
-          :items="navLinks"
-          orientation="vertical"
-          @click="isMenuOpen = false"
-        />
+        <div class="space-y-6">
+          <UNavigationMenu
+            :items="navLinks"
+            orientation="vertical"
+            @click="isMenuOpen = false"
+          />
+
+          <!-- Блок переключения темы в мобильном меню (аккуратно с текстом) -->
+          <div class="pt-4 border-t border-default flex items-center justify-between px-2">
+            <span class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Тема оформления</span>
+            <UColorModeButton />
+          </div>
+        </div>
 
         <div class="pt-4 border-t border-default space-y-3">
           <template v-if="loggedIn && user">
@@ -97,8 +106,8 @@ async function onLogout() {
                 <UIcon name="i-lucide-user" class="w-5 h-5" />
               </div>
               <div class="flex flex-col">
-                <span class="font-medium text-sm">{{ user.name }}</span>
-                <span class="text-xs text-neutral-500 dark:text-neutral-400">{{ user.email }}</span>
+                <span class="font-medium text-sm">{{ user.name || user.user_name }}</span>
+                <span class="text-xs text-neutral-500 dark:text-neutral-400">{{ user.email || user.phone }}</span>
               </div>
             </div>
 

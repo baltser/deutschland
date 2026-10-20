@@ -1,7 +1,6 @@
 <script setup lang="ts">
 definePageMeta({
-  layout: 'default',
-  // middleware: 'auth'
+  layout: 'profile',
 })
 
 useSeoMeta({
@@ -11,13 +10,18 @@ useSeoMeta({
 
 const { user } = useUserSession()
 const { state, isLoading, saveProfile, handleAvatarUpdated } = useProfile()
+
+const onSubmit = async () => {
+  await saveProfile()
+  await navigateTo('/')
+}
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto p-6 space-y-6">
+  <div class="space-y-6">
     <div>
-      <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Личный кабинет</h1>
-      <p class="text-sm text-gray-500 dark:text-gray-400">Управляйте своими личными данными и настройками безопасности</p>
+      <h1 class="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">Личный кабинет</h1>
+      <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-1">Управляйте своими личными данными и настройками безопасности</p>
     </div>
 
     <!-- Карточка с текущими данными и аватаром -->
@@ -32,31 +36,51 @@ const { state, isLoading, saveProfile, handleAvatarUpdated } = useProfile()
           @updated="handleAvatarUpdated"
         />
         <div class="space-y-1 text-center sm:text-left">
-          <!-- Отображаем текущее имя из сессии -->
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ user?.user_name || 'Пользователь' }}</h2>
-          <!-- Отображаем текущий email из сессии -->
-          <p class="text-sm text-gray-500 dark:text-gray-400">{{ user?.email }}</p>
+          <h2 class="text-lg font-semibold text-neutral-900 dark:text-white">{{ user?.user_name || 'Пользователь' }}</h2>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400">{{ user?.email || user?.phone }}</p>
           <div class="pt-1">
             <UBadge
-              :color="user?.role_name === 'admin' ? 'primary' : 'neutral'"
+              :color="user?.role_name === 'admin' ? 'primary' : user?.role_name === 'installer' ? 'warning' : 'neutral'"
               variant="subtle"
               size="xs"
-              class="uppercase"
+              class="uppercase font-semibold"
             >
-              Роль: {{ user?.role_name || user?.role || 'user' }}
+              Роль: {{ user?.role_name || 'user' }}
             </UBadge>
           </div>
         </div>
       </div>
     </UCard>
 
-    <!-- Форма редактирования (инпуты изначально пустые) -->
+    <!-- 🎨 Карточка: Внешний вид / Тема оформления -->
     <UCard>
       <template #header>
-        <h3 class="font-semibold text-gray-900 dark:text-white">Редактирование профиля</h3>
+        <div class="flex items-center gap-2 font-semibold text-sm">
+          <UIcon name="i-lucide-palette" class="w-4 h-4 text-primary" />
+          <span>Внешний вид</span>
+        </div>
       </template>
 
-      <UForm :state="state" class="space-y-4" @submit="saveProfile">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-neutral-900 dark:text-white">Тема оформления</p>
+          <p class="text-xs text-neutral-500 dark:text-neutral-400">Выберите комфортную цветовую схему (светлая / темная)</p>
+        </div>
+        <UColorModeButton />
+      </div>
+    </UCard>
+
+    <!-- Форма редактирования -->
+    <UCard>
+      <template #header>
+        <div class="flex items-center gap-2 font-semibold text-sm">
+          <UIcon name="i-lucide-user-cog" class="w-4 h-4 text-primary" />
+          <span>Редактирование профиля</span>
+        </div>
+      </template>
+
+      <!-- Изменили @submit="saveProfile" на @submit="onSubmit" -->
+      <UForm :state="state" class="space-y-4" @submit="onSubmit">
         <UFormField label="Новое имя" name="name">
           <UInput v-model="state.name" type="text" placeholder="Введите новое имя, если хотите изменить" icon="i-lucide-user" class="w-full" />
         </UFormField>
@@ -66,7 +90,7 @@ const { state, isLoading, saveProfile, handleAvatarUpdated } = useProfile()
         </UFormField>
 
         <div class="border-t border-default pt-4 mt-4">
-          <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-3">
+          <h4 class="text-sm font-medium text-neutral-900 dark:text-white mb-3">
             Изменение пароля (оставьте пустыми, если не нужно менять)
           </h4>
 
