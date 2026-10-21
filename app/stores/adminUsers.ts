@@ -7,6 +7,7 @@ export interface AdminUserItem {
   phone: string
   role_id?: number
   role_name: string
+  email_verified_at?: string | Date | null
   avatar_path?: string | null
   activated_at?: string | null
   [key: string]: unknown

@@ -86,7 +86,7 @@ useSeoMeta({
                     class="text-[10px] px-1.5 py-0.5 rounded font-semibold"
                     :class="device.device_type === 'PANEL' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-300' : 'bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300'"
                   >
-                    {{ device.device_type === 'PANEL' ? 'Панель / Шлагбаум' : 'Камера' }}
+                    {{ device.device_type === 'PANEL' ? 'Панель' : 'Камера' }}
                   </span>
                 </div>
                 <p class="text-xs text-neutral-400 mt-0.5">

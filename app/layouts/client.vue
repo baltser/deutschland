@@ -5,7 +5,7 @@ const clientLinks = [
 </script>
 
 <template>
-  <AppSidebarLayoutShell :menu-items="clientLinks" title="Личный кабинет клиента">
+  <AppSidebarLayoutShell :menu-items="clientLinks" title="Пользовательские функции">
     <slot />
   </AppSidebarLayoutShell>
 </template>

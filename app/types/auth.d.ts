@@ -1,25 +1,27 @@
 declare module '#auth-utils' {
   interface User {
-    id: string | number
-    name: string
-    email: string
-    ruleName?: string
-    rule_name?: string
-    avatar?: string | null
-    createdAt?: string
-    created_at?: string
+    user_id: number
+    user_name?: string | null
+    phone: string
+    email?: string | null
+    email_verified_at?: string | Date | null
+    role_id: number
+    role_name: string
+    avatar_path?: string | null
+    activated_at?: string | Date | null
   }
 }
 
 declare module 'nuxt-auth-utils' {
   interface User {
-    id: string | number
-    name: string
-    email: string
-    ruleName?: string
-    rule_name?: string
-    avatar?: string | null
-    createdAt?: string
-    created_at?: string
+    user_id: number
+    user_name?: string | null
+    phone: string
+    email?: string | null
+    email_verified_at?: string | Date | null
+    role_id: number
+    role_name: string
+    avatar_path?: string | null
+    activated_at?: string | Date | null
   }
 }

@@ -1,17 +1,15 @@
-export interface LoginCredentials {
-  email: string
+export interface PhoneAuthCredentials {
+  phone: string
   password: string
 }
 
-export interface RegisterPayload {
-  name: string
-  email: string
-  password: string
-  avatar?: File | null
+export interface VerifyCodePayload {
+  phone: string
+  code: string
 }
 
 export const useAuth = () => {
-  const { fetch: refreshSession } = useUserSession()
+  const { user, fetch: refreshSession } = useUserSession()
   const toast = useToast()
   const isLoading = ref(false)
   const errorMessage = ref('')
@@ -19,7 +17,10 @@ export const useAuth = () => {
   // Общий обработчик ошибок
   function handleAuthError(err: unknown, defaultMsg: string) {
     const fetchError = err as { data?: { statusMessage?: string; message?: string } }
-    const msg = fetchError.data?.statusMessage || fetchError.data?.message || defaultMsg
+    const msg = fetchError.data?.message ||
+      (fetchError.data?.statusMessage !== 'Server Error' ? fetchError.data?.statusMessage : null) ||
+      defaultMsg
+
     errorMessage.value = msg
     toast.add({
       title: 'Ошибка',
@@ -28,9 +29,22 @@ export const useAuth = () => {
     })
   }
 
-  // Вход в систему
-// Вход в систему
-  async function login(credentials: LoginCredentials) {
+  // Умный редирект в зависимости от роли пользователя
+  async function redirectByRole() {
+    await refreshSession()
+    const roleName = user.value?.role_name
+
+    if (roleName === 'admin') {
+      await navigateTo('/admin/addresses')
+    } else if (roleName === 'installer') {
+      await navigateTo('/installer')
+    } else {
+      await navigateTo('/client')
+    }
+  }
+
+  // 1. Вход в систему по телефону и паролю
+  async function login(credentials: PhoneAuthCredentials) {
     errorMessage.value = ''
     isLoading.value = true
 
@@ -40,66 +54,55 @@ export const useAuth = () => {
         body: credentials
       })
 
-      // Обновляем сессию, чтобы получить актуальные данные пользователя
-      await refreshSession()
-
-      // Получаем текущего пользователя из сессии
-      const { user } = useUserSession()
-      const roleName = (user.value as { role_name?: string })?.role_name
-
-      // Умный редирект в зависимости от роли
-      if (roleName === 'client') {
-        await navigateTo('/client')
-      } else {
-        await navigateTo('/admin/addresses')
-      }
-
+      await redirectByRole()
     } catch (err: unknown) {
-      handleAuthError(err, 'Ошибка входа в систему')
+      handleAuthError(err, 'Неверный номер телефона или пароль')
     } finally {
       isLoading.value = false
     }
   }
 
-  // Регистрация с поддержкой аватара
-  async function register(payload: RegisterPayload, confirmPassword?: string) {
+  // 2. Шаг 1 регистрации: Отправка Flash Call (звонка)
+  async function sendRegistrationCode(credentials: PhoneAuthCredentials) {
     errorMessage.value = ''
-
-    if (confirmPassword && payload.password !== confirmPassword) {
-      errorMessage.value = 'Пароли не совпадают'
-      toast.add({ title: 'Ошибка', description: 'Пароли не совпадают', color: 'error' })
-      return
-    }
-
     isLoading.value = true
 
     try {
-      const formData = new FormData()
-      formData.append('name', payload.name)
-      formData.append('email', payload.email)
-      formData.append('password', payload.password)
-      if (payload.avatar) {
-        formData.append('avatar', payload.avatar)
-      }
-
-      await $fetch('/api/auth/register', {
+      await $fetch('/api/auth/send-code', {
         method: 'POST',
-        body: formData
+        body: credentials
+      })
+      return true
+    } catch (err: unknown) {
+      handleAuthError(err, 'Не удалось отправить входящий вызов')
+      return false
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // 3. Шаг 2 регистрации: Проверка 4 цифр из звонка и автоавторизация
+  async function verifyAndRegister(payload: VerifyCodePayload) {
+    errorMessage.value = ''
+    isLoading.value = true
+
+    try {
+      await $fetch('/api/auth/verify-and-register', {
+        method: 'POST',
+        body: payload
       })
 
-      // ❌ Удалили refreshSession() и navigateTo('/'),
-      // так как пользователь еще не подтвердил почту и не имеет активной сессии.
-
       toast.add({
-        title: 'Регистрация успешна',
-        description: 'Мы отправили письмо для подтверждения на ваш email.',
+        title: 'Успешная регистрация',
+        description: 'Добро пожаловать в систему!',
         color: 'success'
       })
 
-      // ✅ Перенаправляем на страницу ожидания
-      await navigateTo('/auth/verify-pending')
+      await redirectByRole()
+      return true
     } catch (err: unknown) {
-      handleAuthError(err, 'Ошибка регистрации')
+      handleAuthError(err, 'Неверный код подтверждения')
+      return false
     } finally {
       isLoading.value = false
     }
@@ -109,6 +112,7 @@ export const useAuth = () => {
     isLoading,
     errorMessage,
     login,
-    register
+    sendRegistrationCode,
+    verifyAndRegister
   }
 }

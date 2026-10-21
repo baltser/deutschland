@@ -7,7 +7,7 @@ export async function sendVerificationEmail(toEmail: string, token: string, user
   const log = logger.withTag('mail')
 
   const appUrl = config.public.appUrl || 'http://localhost:3000'
-  const verificationLink = `${appUrl}/api/auth/verify?token=${token}`
+  const verificationLink = `${appUrl}/api/auth/mail/verify?token=${token}`
 
   // 1. Извлекаем шаблон из базы данных
   const dbTemplate = await prisma.email_templates.findUnique({

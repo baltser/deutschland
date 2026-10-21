@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import {formatPhone} from "~/utils/formatPhone.ts";
-
 definePageMeta({ layout: 'auth' })
 
 useSeoMeta({
@@ -8,33 +6,24 @@ useSeoMeta({
   description: 'Создание нового аккаунта по номеру телефона'
 })
 
-const { isLoading, errorMessage } = useAuth()
-const { fetch: refreshSession } = useUserSession()
-const router = useRouter()
+const {
+  state,
+  showPassword,
+  isLoading,
+  errorMessage,
+  sendRegistrationCode,
+  verifyAndRegister,
+  handlePhoneInput,
+  getCleanPhone
+} = useAuthForm()
 
-const state = reactive({
-  phone: '',
-  password: ''
-})
-
-const showPassword = ref(false)
 const step = ref<'input' | 'phone-verify'>('input')
 const phoneCode = ref('')
 
-
-const handlePhoneInput = (val: string) => {
-  state.phone = formatPhone(val)
-}
-
-// Шаг 1: Валидация и отправка запроса на звонок
+// Шаг 1: Валидация телефона и запрос на Flash Call (звонок)
 async function onSubmit() {
-  errorMessage.value = ''
-
-  const rawPhone = state.phone.replace(/\D/g, '')
-  if (rawPhone.length < 11) {
-    errorMessage.value = 'Введите корректный номер телефона (11 цифр)'
-    return
-  }
+  const phone = getCleanPhone()
+  if (!phone) return
 
   if (!state.password) {
     errorMessage.value = 'Введите пароль'
@@ -46,26 +35,19 @@ async function onSubmit() {
     return
   }
 
-  try {
-    isLoading.value = true
-    await $fetch('/api/auth/send-code', {
-      method: 'POST',
-      body: {
-        phone: rawPhone,
-        password: state.password
-      }
-    })
+  // Вызываем метод из useAuth через useAuthForm
+  const success = await sendRegistrationCode({
+    phone,
+    password: state.password
+  })
+
+  if (success) {
     step.value = 'phone-verify'
-  } catch (err: unknown) {
-    const fetchErr = err as { data?: { message?: string; statusMessage?: string } }
-    errorMessage.value = fetchErr?.data?.statusMessage || fetchErr?.data?.message || 'Не удалось отправить звонок'
-  } finally {
-    isLoading.value = false
   }
 }
 
-// Шаг 2: Проверка 4 цифр из звонка
-async function verifyPhoneCode() {
+// Шаг 2: Проверка 4 цифр из входящего звонка и авто-вход
+async function onVerifyCode() {
   errorMessage.value = ''
 
   if (phoneCode.value.length < 4) {
@@ -73,26 +55,12 @@ async function verifyPhoneCode() {
     return
   }
 
-  try {
-    isLoading.value = true
-    const rawPhone = state.phone.replace(/\D/g, '')
+  const phone = state.phone.replace(/\D/g, '')
 
-    await $fetch('/api/auth/verify-and-register', {
-      method: 'POST',
-      body: {
-        phone: rawPhone,
-        code: phoneCode.value
-      }
-    })
-
-    await refreshSession()
-    await router.push('/')
-  } catch (err: unknown) {
-    const fetchErr = err as { data?: { message?: string; statusMessage?: string } }
-    errorMessage.value = fetchErr?.data?.statusMessage || fetchErr?.data?.message || 'Не удалось отправить звонок'
-  } finally {
-    isLoading.value = false
-  }
+  await verifyAndRegister({
+    phone,
+    code: phoneCode.value
+  })
 }
 </script>
 
@@ -105,7 +73,7 @@ async function verifyPhoneCode() {
     footer-link-text="Войти"
     footer-to="/auth/login"
   >
-    <!-- Шаг 1: Форма ввода -->
+    <!-- Шаг 1: Форма ввода телефона и пароля -->
     <UForm v-if="step === 'input'" :state="state" class="space-y-4" @submit="onSubmit">
       <UFormField label="Номер телефона" name="phone" required>
         <UInput
@@ -178,7 +146,7 @@ async function verifyPhoneCode() {
         icon="i-lucide-check-circle"
         :loading="isLoading"
         class="mt-4"
-        @click="verifyPhoneCode"
+        @click="onVerifyCode"
       >
         Подтвердить и войти
       </UButton>

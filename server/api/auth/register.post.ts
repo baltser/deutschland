@@ -64,6 +64,7 @@ export default defineEventHandler(async (event) => {
       phone: updatedUser.phone,
       user_name: updatedUser.user_name || 'Клиент',
       email: updatedUser.email || null,
+      email_verified_at: updatedUser.email_verified_at,
       role_id: updatedUser.role_id,
       role_name: updatedUser.role.role_name,
       avatar_path: updatedUser.avatar_path || null
