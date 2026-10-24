@@ -1,14 +1,18 @@
 import { logger } from '#server/utils/logger'
+import { prisma } from '#server/utils/prisma'
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  const session = await getUserSession(event)
+  if (!session || !session.user || session.user.role_name !== 'admin') {
+    throw createError({ statusCode: 403, message: 'Доступ запрещен' })
+  }
+
   const log = logger.withTag('admin:clients')
 
   try {
     const clients = await prisma.users.findMany({
       where: {
-        role: {
-          role_name: 'client'
-        }
+        role_name: 'client'
       },
       select: {
         user_id: true,
@@ -17,14 +21,10 @@ export default defineEventHandler(async () => {
         phone: true,
         avatar_path: true,
         activated_at: true,
+        role_name: true,
         addresses: {
           include: {
-            address: true // Подтягиваем данные самого адреса из связи clients_x_addresses
-          }
-        },
-        role: {
-          select: {
-            role_name: true
+            address: true
           }
         }
       },
@@ -33,7 +33,7 @@ export default defineEventHandler(async () => {
       },
     })
 
-    log.info(`Запрошен список клиентов с адресами. Всего: ${clients.length}`)
+    log.info(`Запрошен список клиентов. Всего найдено: ${clients.length}`)
 
     return {
       success: true,

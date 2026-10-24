@@ -1,7 +1,10 @@
 <script setup lang="ts">
-const { loggedIn, user, clear } = useUserSession()
+import { useAuthStore } from '~/stores/auth'
+
+const authStore = useAuthStore()
 const isMenuOpen = ref(false)
 
+// Динамические ссылки навигации на основе геттеров из стора
 const navLinks = computed(() => {
   const links = [
     { label: 'Главная', to: '/', icon: 'i-lucide-home' },
@@ -9,17 +12,17 @@ const navLinks = computed(() => {
     { label: 'Услуги', to: '/services', icon: 'i-lucide-briefcase' }
   ]
 
-  if (loggedIn.value) {
+  if (authStore.isAdmin) {
     links.push({ label: 'Админ панель', to: '/admin', icon: 'i-lucide-users' })
   }
 
   return links
 })
 
+// Настоящий серверный logout через стор
 async function onLogout() {
-  await clear()
   isMenuOpen.value = false
-  await navigateTo('/login')
+  await authStore.logout()
 }
 </script>
 
@@ -37,14 +40,19 @@ async function onLogout() {
       <div class="flex items-center gap-2">
         <!-- Десктопный блок действий -->
         <div class="hidden md:flex items-center gap-2">
-          <!-- Кнопка темы на десктопе встроена в общий ряд -->
           <UColorModeButton />
-
-          <template v-if="loggedIn && user">
-            <UserProfileBadge
-              :user-name="user.user_name"
-              :role-name="user.role_name"
-            />
+          <UserProfileBadge
+            v-if="authStore.user"
+            :user-name="authStore.user?.user_name"
+            :role-name="authStore.roleName"
+            :avatar-url="authStore.user?.avatar_path"
+            to="/profile"
+          />
+          <template v-if="authStore.isAuthenticated && authStore.user">
+<!--            <UserProfileBadge-->
+<!--              :user-name="authStore.user.user_name"-->
+<!--              :role-name="authStore.roleName"-->
+<!--            />-->
 
             <UButton
               color="neutral"
@@ -59,10 +67,10 @@ async function onLogout() {
           </template>
 
           <template v-else>
-            <UButton to="/login" variant="ghost" color="neutral" size="sm" icon="i-lucide-log-in">
+            <UButton to="/auth/login" variant="ghost" color="neutral" size="sm" icon="i-lucide-log-in">
               Войти
             </UButton>
-            <UButton to="/register" color="primary" size="sm" icon="i-lucide-user-plus">
+            <UButton to="/auth/register" color="primary" size="sm" icon="i-lucide-user-plus">
               Регистрация
             </UButton>
           </template>
@@ -92,7 +100,6 @@ async function onLogout() {
             @click="isMenuOpen = false"
           />
 
-          <!-- Блок переключения темы в мобильном меню (аккуратно с текстом) -->
           <div class="pt-4 border-t border-default flex items-center justify-between px-2">
             <span class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Тема оформления</span>
             <UColorModeButton />
@@ -100,17 +107,23 @@ async function onLogout() {
         </div>
 
         <div class="pt-4 border-t border-default space-y-3">
-          <template v-if="loggedIn && user">
-            <div class="flex items-center gap-3 px-2 py-1">
-              <div class="p-2 rounded-full bg-primary-500/10 text-primary">
-                <UIcon name="i-lucide-user" class="w-5 h-5" />
-              </div>
-              <div class="flex flex-col">
-                <span class="font-medium text-sm">{{ user.name || user.user_name }}</span>
-                <span class="text-xs text-neutral-500 dark:text-neutral-400">{{ user.email || user.phone }}</span>
-              </div>
-            </div>
-
+          <template v-if="authStore.isAuthenticated && authStore.user">
+<!--            <div class="flex items-center gap-3 px-2 py-1">-->
+<!--              <div class="p-2 rounded-full bg-primary-500/10 text-primary">-->
+<!--                <UIcon name="i-lucide-user" class="w-5 h-5" />-->
+<!--              </div>-->
+<!--              <div class="flex flex-col">-->
+<!--                <span class="font-medium text-sm">{{ authStore.user.phone }}</span>-->
+<!--                <span class="text-xs text-neutral-500 dark:text-neutral-400">{{ authStore.roleName }}</span>-->
+<!--              </div>-->
+<!--            </div>-->
+            <UserProfileBadge
+              v-if="authStore.user"
+              :user-name="authStore.user?.user_name"
+              :role-name="authStore.roleName"
+              :avatar-url="authStore.user?.avatar_path"
+              to="/profile"
+            />
             <UButton
               color="error"
               variant="subtle"
@@ -125,7 +138,7 @@ async function onLogout() {
           <template v-else>
             <div class="grid grid-cols-2 gap-2">
               <UButton
-                to="/login"
+                to="/auth/login"
                 variant="outline"
                 color="neutral"
                 block
@@ -135,7 +148,7 @@ async function onLogout() {
                 Войти
               </UButton>
               <UButton
-                to="/register"
+                to="/auth/register"
                 color="primary"
                 block
                 icon="i-lucide-user-plus"

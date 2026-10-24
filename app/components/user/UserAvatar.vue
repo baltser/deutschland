@@ -96,7 +96,7 @@ const handleFileSelect = async (event: Event) => {
     const formData = new FormData()
     formData.append('avatar', file)
 
-    const response = await $fetch<{ success: boolean; avatarUrl: string }>(`/api/users/${props.userId}/avatar`, {
+    const response = await $fetch<{ success: boolean; avatarUrl: string }>(`/api/profile/${props.userId}/avatar`, {
       method: 'POST',
       body: formData
     })

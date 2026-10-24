@@ -1,5 +1,5 @@
-import { uploadFileToMinio, getMinioClient } from '~~/server/utils/minio'
-import { logger } from '#server/utils/logger'
+import { uploadFileToMinio, getMinioClient } from '#server/utils/minio.ts'
+import { logger } from '#server/utils/logger.ts'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
@@ -16,15 +16,15 @@ export default defineEventHandler(async (event) => {
   const log = logger.withTag('users:avatar')
 
   // 2. Проверяем права: пользователь может менять только свой аватар, если он не администратор
-  // const isAdmin = session.user.role_name === 'admin'
+  const isAdmin = session.user.role_name === 'admin'
   const isSelf = Number(session.user.user_id) === userIdNum
 
-  // if (!isSelf && !isAdmin) {
-  //   throw createError({
-  //     statusCode: 403,
-  //     message: 'Недостаточно прав для изменения аватара этого пользователя'
-  //   })
-  // }
+  if (!isSelf && !isAdmin) {
+    throw createError({
+      statusCode: 403,
+      message: 'Недостаточно прав для изменения аватара этого пользователя'
+    })
+  }
 
   // 3. Читаем multipart/form-data
   const parts = await readMultipartFormData(event)
@@ -64,7 +64,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Валидация размера (исправлено выражение до 2 МБ)
+  // Валидация размера (до 2 МБ)
   if (avatarPart.data.length > 2 * 1024 * 1024) {
     throw createError({
       statusCode: 400,
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 4. Находим пользователя в БД (используем модель users и поле avatar_path)
+  // 4. Находим пользователя в БД
   const targetUser = await prisma.users.findUnique({
     where: { user_id: userIdNum },
     select: { user_id: true, avatar_path: true }
@@ -114,7 +114,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // 7. Обновляем путь в базе данных PostgreSQL (модель users, поле avatar_path)
+  // 7. Обновляем путь в базе данных (теперь role_name берется напрямую из users)
   const updatedUser = await prisma.users.update({
     where: { user_id: userIdNum },
     data: { avatar_path: newAvatarPath },
@@ -123,7 +123,7 @@ export default defineEventHandler(async (event) => {
       user_name: true,
       email: true,
       avatar_path: true,
-      role: { select: { role_name: true } }
+      role_name: true
     }
   })
 

@@ -1,6 +1,6 @@
-<!-- app/pages/profile.vue -->
 <script setup lang="ts">
 import { useProfile } from '~/composables/useProfile'
+import {getRoleLabel} from "~/utils/roles.ts";
 
 definePageMeta({
   layout: 'profile',
@@ -11,8 +11,6 @@ useSeoMeta({
   description: 'Управление учетной записью и профилем в системе'
 })
 
-const { user, fetch: refreshSession } = useUserSession()
-
 const {
   state,
   isLoading,
@@ -21,6 +19,7 @@ const {
   passwordError,
   isDirty,
   isEmailVerified,
+  profileUser: user,
   initProfile,
   saveProfile,
   sendVerificationEmail,
@@ -31,10 +30,9 @@ const route = useRoute()
 const toast = useToast()
 
 onMounted(async () => {
-  initProfile()
+  await initProfile()
 
   if (route.query.email_verified === 'true') {
-    await refreshSession()
     toast.add({
       title: 'Email успешно подтвержден!',
       description: 'Теперь вы можете использовать его для восстановления доступа.',
@@ -80,12 +78,12 @@ onMounted(async () => {
           <h2 class="font-semibold text-neutral-900 dark:text-white">{{ user?.user_name || 'Пользователь' }}</h2>
           <p class="text-xs text-neutral-500 dark:text-neutral-400">{{ user?.phone }}</p>
           <UBadge
-            :color="user?.role_name === 'admin' ? 'primary' : user?.role_name === 'installer' ? 'warning' : 'neutral'"
+            :color="getRoleColor(user?.role_name)"
             variant="subtle"
             size="xs"
-            class="uppercase font-semibold mt-1"
+            class="font-semibold mt-1"
           >
-            {{ user?.role_name || 'user' }}
+            {{ getRoleLabel(user?.role_name) }}
           </UBadge>
         </div>
       </div>

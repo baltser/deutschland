@@ -1,7 +1,6 @@
 import { getRedisClient } from '~~/server/utils/redis'
 import { ensureBucket } from '~~/server/utils/minio'
 import { logger } from '~~/server/utils/logger'
-import { ensureDefaultRoles } from "#server/utils/roles.ts"
 import { ensureDefaultEmailTemplate } from "#server/utils/emailTemplates.ts"
 import { ensureDefaultAdminUser } from "#server/utils/adminUser.ts"
 
@@ -16,13 +15,6 @@ export default defineNitroPlugin(async () => {
   } catch (err) {
     log.error('❌ Критическая ошибка: Не удалось подключиться к PostgreSQL.', err)
     throw new Error('Не удалось выполнить действие', { cause: err });
-  }
-
-  try {
-    await ensureDefaultRoles()
-  } catch (err) {
-    log.error('❌ Критическая ошибка при инициализации ролей:', { cause: err })
-    throw new Error('Startup aborted: Failed to seed roles', { cause: err })
   }
 
   try {

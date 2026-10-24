@@ -11,19 +11,20 @@ const {
   showPassword,
   isLoading,
   errorMessage,
+  step,
+  phoneCode,
   sendRegistrationCode,
   verifyAndRegister,
   handlePhoneInput,
   getCleanPhone
 } = useAuthForm()
 
-const step = ref<'input' | 'phone-verify'>('input')
-const phoneCode = ref('')
-
-// Шаг 1: Валидация телефона и запрос на Flash Call (звонок)
 async function onSubmit() {
   const phone = getCleanPhone()
-  if (!phone) return
+  if (!phone) {
+    errorMessage.value = 'Введите номер телефона'
+    return
+  }
 
   if (!state.password) {
     errorMessage.value = 'Введите пароль'
@@ -35,27 +36,21 @@ async function onSubmit() {
     return
   }
 
-  // Вызываем метод из useAuth через useAuthForm
-  const success = await sendRegistrationCode({
+  await sendRegistrationCode({
     phone,
     password: state.password
   })
-
-  if (success) {
-    step.value = 'phone-verify'
-  }
 }
 
-// Шаг 2: Проверка 4 цифр из входящего звонка и авто-вход
 async function onVerifyCode() {
   errorMessage.value = ''
 
   if (phoneCode.value.length < 4) {
-    errorMessage.value = 'Введите 4 цифры входящего номера'
+    errorMessage.value = 'Введите последние 4 цифры входящего номера'
     return
   }
 
-  const phone = state.phone.replace(/\D/g, '')
+  const phone = getCleanPhone()
 
   await verifyAndRegister({
     phone,

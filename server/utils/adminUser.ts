@@ -4,50 +4,38 @@ import { logger } from '#server/utils/logger'
 export async function ensureDefaultAdminUser() {
   const log = logger.withTag('admin-seed')
 
-  // 1. Ищем роль администратора по точному списку системных названий (используем role_name)
-  const adminRole = await prisma.roles.findFirst({
-    where: {
-      OR: [
-        { role_name: { equals: 'admin', mode: 'insensitive' } },
-        { role_name: { equals: 'administrator', mode: 'insensitive' } },
-        { role_name: { equals: 'администратор', mode: 'insensitive' } }
-      ]
-    }
+  // 1. Проверяем, есть ли уже хотя бы один пользователь с ролью admin
+  const existingAdmin = await prisma.users.findFirst({
+    where: { role_name: 'admin' }
   })
 
-  if (!adminRole) {
-    log.warn('⚠️ Роль администратора не найдена в таблице roles, пропуск создания дефолтного админа.')
+  if (existingAdmin) {
+    log.info('ℹ️ Администратор в системе уже присутствует.')
     return
   }
 
-  // 2. Проверяем, есть ли уже хотя бы один пользователь с этой ролью
-  const existingAdmin = await prisma.users.findFirst({
-    where: { role_id: adminRole.role_id }
-  })
+  const adminPhone = process.env.ADMIN_PHONE || '79000000001'
+  const adminName = process.env.ADMIN_NAME || 'System Administrator'
 
-  if (!existingAdmin) {
-    const adminPhone = process.env.ADMIN_PHONE || '79000000001'
-    const adminName = process.env.ADMIN_NAME || 'System Administrator'
-
-    // Проверяем, не занят ли этот телефон
-    const phoneConflict = await prisma.users.findUnique({
-      where: { phone: adminPhone }
+  try {
+    // 2. Используем upsert: если телефон уже есть — делаем его админом, если нет — создаем нового
+    await prisma.users.upsert({
+      where: { phone: adminPhone },
+      update: {
+        role_name: 'admin',
+        user_name: adminName
+      },
+      create: {
+        user_name: adminName,
+        phone: adminPhone,
+        role_name: 'admin',
+        activated_at: null
+      }
     })
 
-    if (!phoneConflict) {
-      await prisma.users.create({
-        data: {
-          user_name: adminName,
-          phone: adminPhone,
-          role_id: adminRole.role_id,
-          activated_at: null
-        }
-      })
-      log.success(`✅ Создан дефолтный администратор. Телефон: ${adminPhone}`)
-    } else {
-      log.info(`ℹ️ Пользователь с телефоном ${adminPhone} уже существует, пропускаем создание.`)
-    }
-  } else {
-    log.info('ℹ️ Администратор в системе уже присутствует.')
+    log.success(`✅ Дефолтный администратор успешно настроен. Телефон: ${adminPhone}`)
+  } catch (err) {
+    log.error('❌ Не удалось создать или обновить дефолтного администратора:', err)
+    throw err
   }
 }

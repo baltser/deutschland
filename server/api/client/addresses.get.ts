@@ -1,7 +1,10 @@
 import { prisma } from '#server/utils/prisma'
+import { logger } from '#server/utils/logger'
 
 export default defineEventHandler(async (event) => {
-  // Проверяем авторизацию пользователя через сессию
+  const log = logger.withTag('client:addresses')
+
+  // 1. Проверяем сессию
   const session = await getUserSession(event)
   if (!session || !session.user) {
     throw createError({
@@ -10,60 +13,53 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const sessionUser = session.user as { user_id?: number; id?: number; role_name?: string }
-  const userId = sessionUser.user_id || sessionUser.id
-  const roleName = sessionUser.role_name
+  const { user_id, role_name } = session.user
 
-  if (!userId) {
+  if (!user_id) {
     throw createError({
       statusCode: 400,
       message: 'Не удалось определить ID пользователя в сессии',
     })
   }
 
-  try {
-    let addresses = []
+  // 2. Строго проверяем, что запрос делает именно клиент
+  if (role_name !== 'client') {
+    throw createError({
+      statusCode: 403,
+      message: 'Доступ разрешен только для клиентов',
+    })
+  }
 
-    // Если пользователь — администратор, отдаем вообще все адреса в системе
-    if (roleName === 'admin') {
-      addresses = await prisma.addresses.findMany({
-        include: {
-          devices: {
-            where: {
-              device_type: 'CAMERA', // Администратор видит только камеры в этом разделе
-            },
-          },
-        },
-      })
-    } else {
-      // Если это обычный клиент, ищем только привязанные к нему адреса
-      const clientAddresses = await prisma.clients_x_addresses.findMany({
-        where: { user_id: Number(userId) },
-        include: {
-          address: {
-            include: {
-              devices: {
-                where: {
-                  device_type: 'CAMERA', // Клиент видит только камеры
-                },
+  try {
+    // 3. Загружаем адреса, привязанные к клиенту, с фильтрацией доступных ему устройств
+    const clientAddresses = await prisma.clients_x_addresses.findMany({
+      where: { user_id: Number(user_id) },
+      include: {
+        address: {
+          include: {
+            devices: {
+              where: {
+                device_type: 'CAMERA', // 👈 Возвращаем фильтр: клиент видит только разрешенный тип устройств
               },
             },
           },
         },
-      })
+      },
+    })
 
-      addresses = clientAddresses.map((item) => item.address)
-    }
+    const addresses = clientAddresses.map((item) => item.address)
+
+    log.info(`Загружено объектов для клиента ID ${user_id}: ${addresses.length}`)
 
     return {
       success: true,
       addresses,
     }
   } catch (err: unknown) {
-    console.error('Ошибка при загрузке объектов:', err)
+    log.error(`Ошибка при загрузке объектов для клиента ID ${user_id}:`, err)
     throw createError({
       statusCode: 500,
-      message: 'Не удалось загрузить объекты',
+      message: 'Не удалось загрузить ваши объекты',
     })
   }
 })

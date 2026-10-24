@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { normalizeAndValidatePhone } from '#server/utils/phone'
+import { prisma } from '#server/utils/prisma'
 
 const addClientSchema = z.object({
   phone: z.string().min(10, 'Введите корректный номер телефона'),
@@ -7,6 +8,11 @@ const addClientSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
+  // Проверка прав администратора
+  const session = await getUserSession(event)
+  if (!session || !session.user || session.user.role_name !== 'admin') {
+    throw createError({ statusCode: 403, message: 'Доступ запрещен' })
+  }
 
   const id = getRouterParam(event, 'id')
   const addressId = Number(id)
@@ -15,63 +21,52 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Некорректный ID адреса' })
   }
 
-    const body = await readBody(event)
-    const parseResult = addClientSchema.safeParse(body)
+  const body = await readBody(event)
+  const parseResult = addClientSchema.safeParse(body)
 
-    if (!parseResult.success) {
-      throw createError({
-        statusCode: 400,
-        message: parseResult.error.issues[0]?.message || 'Неверные данные'
-      })
-    }
-
-    const phone = normalizeAndValidatePhone(parseResult.data.phone)
-    const userName = parseResult.data.user_name?.trim() || 'Клиент'
-
-    // Находим роль 'client' в базе
-    const clientRole = await prisma.roles.findUnique({
-      where: { role_name: 'client' }
+  if (!parseResult.success) {
+    throw createError({
+      statusCode: 400,
+      message: parseResult.error.issues[0]?.message || 'Неверные данные'
     })
+  }
 
-    if (!clientRole) {
-      throw createError({ statusCode: 500, message: 'Роль client не найдена в базе данных' })
-    }
+  const phone = normalizeAndValidatePhone(parseResult.data.phone)
+  const userName = parseResult.data.user_name?.trim() || 'Клиент'
 
-    // Ищем пользователя по телефону
-    let user = await prisma.users.findUnique({
-      where: { phone }
-    })
+  // 1. Ищем пользователя по телефону в таблице users
+  let user = await prisma.users.findUnique({
+    where: { phone }
+  })
 
-    // Если пользователь не найден — создаем нового клиента без пароля (вход по телефону)
-    if (!user) {
-      user = await prisma.users.create({
-        data: {
-          phone,
-          user_name: userName,
-          password: null,
-          role_id: clientRole.role_id,
-          activated_at: null
-        }
-      })
-    }
-
-    // Привязываем пользователя к адресу (если еще не привязан)
-    try {
-      await prisma.clients_x_addresses.create({
-        data: {
-          user_id: user.user_id,
-          address_id: addressId
-        }
-      })
-    } catch (e: unknown) {
-      // P2002 — ошибка уникальности, значит он уже привязан к этому адресу
-      const err = e as { code?: string }
-      if (err.code !== 'P2002') {
-        throw e
+  // 2. Если пользователь не найден — создаем нового с ролью 'client' (без запроса к roles)
+  if (!user) {
+    user = await prisma.users.create({
+      data: {
+        phone,
+        user_name: userName,
+        password: null,
+        role_name: 'client', // 👈 Используем новый Enum UserRole напрямую
+        activated_at: null
       }
+    })
+  }
+
+  // 3. Привязываем пользователя к адресу через промежуточную таблицу (если еще не привязан)
+  try {
+    await prisma.clients_x_addresses.create({
+      data: {
+        user_id: user.user_id,
+        address_id: addressId
+      }
+    })
+  } catch (e: unknown) {
+    // P2002 — ошибка уникальности, значит связь уже существует
+    const err = e as { code?: string }
+    if (err.code !== 'P2002') {
+      throw e
     }
+  }
 
-    return { success: true, user }
-
-
+  return { success: true, user }
 })

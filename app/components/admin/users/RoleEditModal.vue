@@ -1,7 +1,20 @@
+<!-- app/components/admin/users/AdminUsersRoleEditModal.vue -->
 <script setup lang="ts">
-import ClientAddressList from '../../client/address/List.vue'
+import ClientAddressList from '~/components/client/address/List.vue'
 import UserAvatar from '~/components/user/UserAvatar.vue'
-import { useUserEditModal, type UserEditTarget } from '~/composables/admin/users/useUserEditModal'
+
+// Интерфейс целевого пользователя для редактирования
+export interface UserEditTarget {
+  user_id: number
+  user_name?: string | null
+  phone: string
+  email?: string | null
+  avatar_path?: string | null
+  role_name?: string
+  activated_at?: string | null
+  role?: { role_name: string }
+  addresses?: any[]
+}
 
 const props = defineProps<{
   modelValue: boolean
@@ -11,31 +24,119 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  save: [payload: { user_name: string; role_name: string; avatar_path?: string | null; avatarFile?: File | null }]
+  save: [payload: { user_name: string; role_name: string; avatarFile?: File | null }]
 }>()
 
-// Подключаем всю логику из композибла (передаем точечно нужные рефы)
-const userRef = toRef(props, 'user')
-const modelValueRef = toRef(props, 'modelValue')
+// --- ЛОГИКА ФОРМЫ И СОСТОЯНИЯ ---
 
-const {
-  form,
-  isOpen,
-  isClient,
-  modalTitle,
-  staffRoleOptions,
-  displayAvatarUrl,
-  hasChanges,
-  handleAvatarFileSelected,
-  handleSave
-} = useUserEditModal(userRef, modelValueRef, emit)
+const form = reactive({
+  user_name: '',
+  role_name: '',
+  avatar_path: null as string | null,
+  newAvatarFile: null as File | null,
+  localPreviewUrl: null as string | null
+})
+
+// Определяем исходную роль пользователя
+const initialRole = computed(() => {
+  if (!props.user) return 'client'
+  const raw = props.user.role_name || props.user.role?.role_name || 'installer'
+  return raw.toLowerCase().trim()
+})
+
+const isClient = computed(() => initialRole.value === 'client')
+
+// Заголовок модалки
+const modalTitle = computed(() => {
+  if (!props.user) return 'Пользователь'
+  const name = form.user_name || props.user.user_name || 'Без имени'
+  return isClient.value ? `Клиент: ${name}` : `Сотрудник: ${name}`
+})
+
+const staffRoleOptions = [
+  { label: 'Администратор (admin)', value: 'admin' },
+  { label: 'Монтажник (installer)', value: 'installer' },
+]
+
+// Актуальный URL для отображения (превью нового файла имеет приоритет)
+const displayAvatarUrl = computed(() => {
+  if (form.localPreviewUrl) return form.localPreviewUrl
+  const path = form.avatar_path || props.user?.avatar_path
+  if (!path) return null
+  return path.startsWith('/api/files/') ? path : `/api/files/${path}`
+})
+
+// Проверка: были ли сделаны изменения в форме
+const hasChanges = computed(() => {
+  if (!props.user) return false
+  const origName = props.user.user_name || ''
+  const origRole = initialRole.value
+
+  return (
+    form.user_name !== origName ||
+    form.newAvatarFile !== null ||
+    (!isClient.value && form.role_name !== origRole)
+  )
+})
+
+// Очистка памяти Blob URL
+const revokePreview = () => {
+  if (form.localPreviewUrl) {
+    URL.revokeObjectURL(form.localPreviewUrl)
+    form.localPreviewUrl = null
+  }
+}
+
+// Синхронизация формы при открытии модалки или смене юзера
+watch(
+  () => props.user,
+  (newUser) => {
+    revokePreview()
+    if (newUser) {
+      form.user_name = newUser.user_name || ''
+      form.role_name = initialRole.value
+      form.avatar_path = newUser.avatar_path || null
+      form.newAvatarFile = null
+      form.localPreviewUrl = null
+    }
+  },
+  { immediate: true, deep: true }
+)
+
+// Обработка выбора нового аватара
+function handleAvatarFileSelected(file: File) {
+  revokePreview()
+  form.newAvatarFile = file
+  form.localPreviewUrl = URL.createObjectURL(file)
+}
+
+// Управление открытием через v-model
+const isOpen = computed({
+  get: () => props.modelValue,
+  set: (val) => emit('update:modelValue', val)
+})
+
+// Сохранение
+function handleSave() {
+  if (!hasChanges.value || props.isSaving) return
+
+  emit('save', {
+    user_name: form.user_name.trim(),
+    role_name: form.role_name,
+    avatarFile: form.newAvatarFile
+  })
+}
+
+onUnmounted(() => {
+  revokePreview()
+})
 </script>
 
 <template>
   <UModal v-model:open="isOpen" :title="modalTitle">
     <template #body>
       <div v-if="user" class="space-y-6">
-        <!-- Блок профиля -->
+        <!-- Блок профиля и аватара -->
         <div class="flex items-center gap-4 p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/80 dark:border-neutral-700/60">
           <UserAvatar
             :user-id="user.user_id"
@@ -63,7 +164,7 @@ const {
           </div>
         </div>
 
-        <!-- Поле редактирования имени -->
+        <!-- Имя пользователя -->
         <UFormField label="Имя пользователя">
           <UInput
             v-model="form.user_name"
@@ -73,7 +174,7 @@ const {
           />
         </UFormField>
 
-        <!-- Выбор роли (Только для сотрудников) -->
+        <!-- Роль (только для сотрудников) -->
         <UFormField v-if="!isClient" label="Роль сотрудника">
           <USelect
             v-model="form.role_name"
@@ -83,7 +184,7 @@ const {
           />
         </UFormField>
 
-        <!-- Суб-компонент списка адресов (Только для клиентов) -->
+        <!-- Список адресов (только для клиентов) -->
         <ClientAddressList
           v-if="isClient"
           :addresses="user.addresses"
@@ -112,7 +213,7 @@ const {
             color="primary"
             :loading="isSaving"
             :disabled="!hasChanges"
-            @click="handleSave(isSaving)"
+            @click="handleSave"
           >
             Сохранить
           </UButton>

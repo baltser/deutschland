@@ -1,15 +1,50 @@
+<!-- app/pages/installer/index.vue -->
 <script setup lang="ts">
 definePageMeta({
   layout: 'installer',
 })
 
-// Запрашиваем объекты и оборудование для монтажника
+const route = useRoute()
+const router = useRouter()
+
+type TabType = 'PANEL' | 'CAMERA' | 'all'
+
+// 1. Читаем вкладку из URL query (по умолчанию 'PANEL')
+const activeTab = computed<TabType>({
+  get: () => {
+    const tab = route.query.tab as TabType
+    if (['PANEL', 'CAMERA', 'all'].includes(tab)) return tab
+    return 'PANEL'
+  },
+  set: (val) => {
+    router.replace({ query: { ...route.query, tab: val } })
+  }
+})
+
+// 2. Получаем все данные один раз
 const { data: responseData, pending, error, refresh } = await useFetch('/api/installer/devices')
-const addresses = computed(() => responseData.value?.addresses || [])
+
+const rawAddresses = computed(() => responseData.value?.addresses || [])
+
+// 3. ПОНЯТНАЯ ЛОГИКА ФИЛЬТРАЦИИ:
+const addresses = computed(() => {
+  // Если выбран режим "Все оборудование" — возвращаем сырые данные без фильтрации!
+  if (activeTab.value === 'all') {
+    return rawAddresses.value
+  }
+
+  // Для конкретных вкладок оставляем только соответствующие девайсы
+  return rawAddresses.value
+    .map(addr => ({
+      ...addr,
+      devices: (addr.devices || []).filter(d => d.device_type === activeTab.value)
+    }))
+    .filter(addr => addr.devices.length > 0)
+})
 
 useSeoMeta({
-  title: 'Кабинет монтажника — Управление оборудованием',
-  description: 'Панели, шлагбаумы и камеры на объектах',
+  title: 'Кабинет монтажника',
+  description: 'Управление оборудованием на объектах',
 })
 </script>
 
@@ -18,9 +53,11 @@ useSeoMeta({
     <!-- Шапка -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-neutral-900 dark:text-white">Объекты и оборудование</h1>
+        <h1 class="text-2xl font-bold text-neutral-900 dark:text-white">
+          {{ activeTab === 'PANEL' ? 'Вызывные панели' : activeTab === 'CAMERA' ? 'Камеры и шлагбаумы' : 'Все оборудование' }}
+        </h1>
         <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-          Быстрый доступ к вызывным панелям, шлагбаумам и камерам распознавания на объектах.
+          Мониторинг параметров и статусов сетевого оборудования.
         </p>
       </div>
       <UButton
@@ -35,21 +72,51 @@ useSeoMeta({
       </UButton>
     </div>
 
-    <!-- Загрузка / Ошибка -->
-    <div v-if="error" class="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-2xl p-6 text-red-600 dark:text-red-400 text-sm">
+    <!-- Вкладки прямо на странице (синхронизированы с сайдбаром) -->
+    <div class="flex items-center gap-2 border-b border-neutral-200 dark:border-neutral-800 pb-3">
+      <UButton
+        :variant="activeTab === 'PANEL' ? 'solid' : 'ghost'"
+        size="sm"
+        icon="i-lucide-phone-call"
+        @click="activeTab = 'PANEL'"
+      >
+        Вызывные панели
+      </UButton>
+      <UButton
+        :variant="activeTab === 'CAMERA' ? 'solid' : 'ghost'"
+        size="sm"
+        icon="i-lucide-video"
+        @click="activeTab = 'CAMERA'"
+      >
+        Камеры и шлагбаумы
+      </UButton>
+      <UButton
+        :variant="activeTab === 'all' ? 'solid' : 'ghost'"
+        size="sm"
+        icon="i-lucide-layout-grid"
+        @click="activeTab = 'all'"
+      >
+        Все оборудование
+      </UButton>
+    </div>
+
+    <!-- Ошибка -->
+    <div v-if="error" class="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-2xl p-6 text-red-600 text-sm">
       Не удалось загрузить данные оборудования.
     </div>
 
+    <!-- Загрузка -->
     <div v-else-if="pending" class="py-16 text-center text-neutral-400 text-sm">
       Загрузка объектов...
     </div>
 
-    <!-- Список адресов -->
+    <!-- Пусто -->
     <div v-else-if="addresses.length === 0" class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-12 text-center space-y-3">
       <UIcon name="i-lucide-map-pin" class="w-8 h-8 mx-auto text-neutral-400" />
-      <h3 class="font-medium text-neutral-900 dark:text-white">Нет доступных объектов</h3>
+      <h3 class="font-medium text-neutral-900 dark:text-white">Нет устройств в этой категории</h3>
     </div>
 
+    <!-- Список -->
     <div v-else class="space-y-6">
       <div
         v-for="addr in addresses"
@@ -66,7 +133,6 @@ useSeoMeta({
           </div>
         </div>
 
-        <!-- Оборудование -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div
             v-for="device in addr.devices"
@@ -75,7 +141,7 @@ useSeoMeta({
           >
             <div class="flex items-center gap-3">
               <div class="p-2 rounded-lg bg-neutral-200/70 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300">
-                <UIcon :name="device.device_type === 'PANEL' ? 'i-lucide-phone-call' : 'i-lucide-video'" class="py-4 h-4" />
+                <UIcon :name="device.device_type === 'PANEL' ? 'i-lucide-phone-call' : 'i-lucide-video'" class="w-4 h-4" />
               </div>
               <div>
                 <div class="flex items-center gap-2">

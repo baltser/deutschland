@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { logger } from '#server/utils/logger'
 import { normalizeAndValidatePhone } from '#server/utils/phone'
+import { prisma } from '#server/utils/prisma'
+import type { UserRole } from '@prisma/client'
 
 const createStaffSchema = z.object({
   phone: z.string().min(10, 'Введите корректный номер телефона'),
@@ -15,6 +17,12 @@ export default defineEventHandler(async (event) => {
 
   // Проверяем сессию администратора
   const session = await requireUserSession(event)
+  if (session.user.role_name !== 'admin') {
+    throw createError({
+      statusCode: 403,
+      message: 'У вас нет прав для выполнения этой операции',
+    })
+  }
 
   const body = await readBody(event)
   const parseResult = createStaffSchema.safeParse(body)
@@ -28,7 +36,7 @@ export default defineEventHandler(async (event) => {
 
   const phone = normalizeAndValidatePhone(parseResult.data.phone)
   const userName = parseResult.data.user_name?.trim() || 'Сотрудник'
-  const { role_name } = parseResult.data
+  const roleName = parseResult.data.role_name as UserRole
 
   // 1. Проверяем, существует ли уже пользователь с таким телефоном
   const existingUser = await prisma.users.findUnique({
@@ -42,35 +50,18 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 2. Находим роль в базе данных
-  const role = await prisma.roles.findUnique({
-    where: { role_name }
-  })
-
-  if (!role) {
-    throw createError({
-      statusCode: 500,
-      message: `Роль "${role_name}" не найдена в системе`
-    })
-  }
-
-  // 3. Создаем предзаписанного сотрудника (без пароля, activated_at = null)
+  // 2. Создаем сотрудника напрямую с ролью из enum
   const newUser = await prisma.users.create({
     data: {
       phone,
       user_name: userName,
-      role_id: role.role_id,
+      role_name: roleName,
       password: null,
       activated_at: null
-    },
-    include: {
-      role: {
-        select: { role_name: true }
-      }
     }
   })
 
-  log.success(`Администратор #${session.user.user_id} создал сотрудника ${newUser.phone} (${role_name})`)
+  log.success(`Администратор #${session.user.user_id} создал сотрудника ${newUser.phone} (${roleName})`)
 
   return {
     success: true,
@@ -78,7 +69,7 @@ export default defineEventHandler(async (event) => {
       user_id: newUser.user_id,
       user_name: newUser.user_name,
       phone: newUser.phone,
-      role_name: newUser.role.role_name
+      role_name: newUser.role_name
     }
   }
 })
