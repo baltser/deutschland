@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer'
 import path from 'node:path'
 import { logger } from '#server/utils/logger'
 import { renderEmailTemplate, DEFAULT_VERIFICATION_TEMPLATE } from '#server/utils/emailTemplates'
+import fs from 'node:fs'
 
 export async function sendVerificationEmail(toEmail: string, token: string, userName?: string) {
   const config = useRuntimeConfig()
@@ -30,8 +31,10 @@ export async function sendVerificationEmail(toEmail: string, token: string, user
   const html = renderEmailTemplate(rawHtml, variables)
 
   // Путь к файлу логотипа в папке public
-  const logoPath = path.resolve(process.cwd(), 'public/images/logo.light.png')
-
+  let logoPath = path.resolve(process.cwd(), 'public/images/logo.light.png')
+  if (!fs.existsSync(logoPath)) {
+    logoPath = path.resolve(process.cwd(), '.output/public/images/logo.light.png')
+  }
   // Читаем параметры SMTP напрямую из process.env
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.mail.ru',
