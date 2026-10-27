@@ -1,19 +1,11 @@
-<!-- app/components/admin/users/AdminUsersRoleEditModal.vue -->
 <script setup lang="ts">
 import ClientAddressList from '~/components/client/address/List.vue'
 import UserAvatar from '~/components/user/UserAvatar.vue'
+import type {StaffUser, ClientUser, ClientAddressRelation} from '~/types/user'
 
-// Интерфейс целевого пользователя для редактирования
-export interface UserEditTarget {
-  user_id: number
-  user_name?: string | null
-  phone: string
-  email?: string | null
-  avatar_path?: string | null
-  role_name?: string
-  activated_at?: string | null
+export type UserEditTarget = (StaffUser | ClientUser) & {
   role?: { role_name: string }
-  addresses?: any[]
+  addresses?: ClientAddressRelation[]
 }
 
 const props = defineProps<{
@@ -40,7 +32,7 @@ const form = reactive({
 // Определяем исходную роль пользователя
 const initialRole = computed(() => {
   if (!props.user) return 'client'
-  const raw = props.user.role_name || props.user.role?.role_name || 'installer'
+  const raw = props.user.role?.role_name || ('addresses' in props.user ? 'client' : 'installer')
   return raw.toLowerCase().trim()
 })
 

@@ -1,7 +1,8 @@
 import { prisma } from '#server/utils/prisma'
 import { logger } from '#server/utils/logger'
+import type { ClientAddressesResponse } from '#server/types/client'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<ClientAddressesResponse> => {
   const log = logger.withTag('client:addresses')
 
   // 1. Проверяем сессию
@@ -22,8 +23,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 2. Строго проверяем, что запрос делает именно клиент
-  if (role_name !== 'client') {
+  // 2. Строго проверяем, что запрос делает именно клиент (или админ)
+  if (role_name !== 'client' && role_name !== 'admin') {
     throw createError({
       statusCode: 403,
       message: 'Доступ разрешен только для клиентов',
@@ -31,7 +32,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // 3. Загружаем адреса, привязанные к клиенту, с фильтрацией доступных ему устройств
+    // 3. Загружаем адреса, привязанные к клиенту, с фильтрацией разрешенных устройств (камер)
     const clientAddresses = await prisma.clients_x_addresses.findMany({
       where: { user_id: Number(user_id) },
       include: {
@@ -39,7 +40,7 @@ export default defineEventHandler(async (event) => {
           include: {
             devices: {
               where: {
-                device_type: 'CAMERA', // 👈 Возвращаем фильтр: клиент видит только разрешенный тип устройств
+                device_type: 'CAMERA',
               },
             },
           },

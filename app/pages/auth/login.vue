@@ -1,4 +1,8 @@
 <script setup lang="ts">
+
+import {useForm} from "~/composables/auth/useForm.ts";
+import {getCleanPhone} from "~/utils/phone.ts";
+
 definePageMeta({ layout: 'auth' })
 
 useSeoMeta({
@@ -11,17 +15,13 @@ const {
   showPassword,
   isLoading,
   errorMessage,
-  login,
-  handlePhoneInput,
-  getCleanPhone
-} = useAuthForm()
+  login
+} = useForm()
 
 async function onLogin() {
-  const phone = getCleanPhone()
-  if (!phone) return
-
-  if (!state.password) {
-    errorMessage.value = 'Введите пароль'
+  const phone = getCleanPhone(state.phone)
+  if (!phone) {
+    errorMessage.value = 'Введите номер телефона'
     return
   }
 
@@ -33,23 +33,19 @@ async function onLogin() {
   <AuthCard
     title="Вход в систему"
     description="Введите ваш номер телефона и пароль"
-    :error-message="errorMessage"
+    :error-message="errorMessage ?? undefined"
     footer-text="Еще нет аккаунта?"
     footer-link-text="Зарегистрироваться"
     footer-to="/auth/register"
   >
     <UForm :state="state" class="space-y-4" @submit="onLogin">
-      <UFormField label="Номер телефона" name="phone" required>
-        <UInput
-          :model-value="state.phone"
-          type="tel"
-          placeholder="+7 (999) 000-00-00"
-          icon="i-lucide-phone"
-          size="lg"
-          class="w-full"
-          @update:model-value="handlePhoneInput"
+
+        <AppPhoneInput
+          v-model="state.phone"
+          label="Номер телефона"
+          name="phone"
+          required
         />
-      </UFormField>
 
       <UFormField label="Пароль" name="password" required>
         <UInput

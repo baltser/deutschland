@@ -1,10 +1,5 @@
 <script setup lang="ts">
-const { clear } = useUserSession()
 
-async function onLogout() {
-  await clear()
-  await navigateTo('/login')
-}
 </script>
 
 <template>
@@ -33,7 +28,7 @@ async function onLogout() {
           variant="subtle"
           size="sm"
           icon="i-lucide-log-out"
-          @click="onLogout"
+          @click="handleLogout"
         >
           Выйти
         </UButton>

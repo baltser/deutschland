@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import { logger } from '#server/utils/logger'
+import { prisma } from '#server/utils/prisma'
+import type { EmailTemplateUpdateResponse, UpdateEmailTemplateBody } from '#server/types/admin'
 
 const updateSchema = z.object({
   title: z.string().min(1, 'Название обязательно'),
@@ -7,11 +9,7 @@ const updateSchema = z.object({
   body_html: z.string().min(1, 'HTML-код не может быть пустым')
 })
 
-interface ApiError {
-  message?: string
-}
-
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<EmailTemplateUpdateResponse> => {
   const session = await requireUserSession(event)
   const log = logger.withTag('admin:email-templates')
 
@@ -31,7 +29,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const body = await readBody(event)
+  const body = await readBody<UpdateEmailTemplateBody>(event)
   const parseResult = updateSchema.safeParse(body)
 
   if (!parseResult.success) {
@@ -61,7 +59,7 @@ export default defineEventHandler(async (event) => {
       template: updatedTemplate
     }
   } catch (err: unknown) {
-    const apiErr = err as ApiError
+    const apiErr = err as { message?: string }
     log.error(`Ошибка при обновлении шаблона ${slug}:`, { cause: err })
     throw createError({
       statusCode: 500,

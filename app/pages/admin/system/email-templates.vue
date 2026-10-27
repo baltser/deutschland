@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useEmailTemplates } from '~/composables/admin/useEmailTemplates'
+import { useEmailTemplatesStore } from '~/stores/admin/emailTemplates'
+import { useEmailTemplateEditor } from '~/composables/admin/system/useEmailTemplateEditor'
 
 definePageMeta({ layout: 'admin' })
 
@@ -8,23 +9,17 @@ useSeoMeta({
   description: 'Настройка тем и HTML-верстки системных email-уведомлений'
 })
 
+const store = useEmailTemplatesStore()
 const {
-  templates,
-  selectedSlug,
-  isLoading,
-  isSaving,
   previewMode,
   textareaRef,
-  form,
   previewHtml,
-  fetchTemplates,
-  selectTemplate,
   insertVariable,
-  saveTemplate
-} = useEmailTemplates()
+  insertLogo
+} = useEmailTemplateEditor()
 
 onMounted(() => {
-  fetchTemplates()
+  store.fetchTemplates()
 })
 </script>
 
@@ -43,12 +38,12 @@ onMounted(() => {
       <!-- Вкладки выбора шаблона -->
       <div class="flex flex-wrap items-center gap-1.5 bg-neutral-100 dark:bg-neutral-800 p-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700">
         <UButton
-          v-for="t in templates"
+          v-for="t in store.templates"
           :key="t.slug"
           size="xs"
-          :variant="selectedSlug === t.slug ? 'solid' : 'ghost'"
-          :color="selectedSlug === t.slug ? 'primary' : 'neutral'"
-          @click="selectTemplate(t.slug)"
+          :variant="store.selectedSlug === t.slug ? 'solid' : 'ghost'"
+          :color="store.selectedSlug === t.slug ? 'primary' : 'neutral'"
+          @click="store.selectTemplate(t.slug)"
         >
           {{ t.title }}
         </UButton>
@@ -56,7 +51,7 @@ onMounted(() => {
     </div>
 
     <!-- Индикатор загрузки -->
-    <div v-if="isLoading" class="text-center py-24 text-neutral-400 text-sm">
+    <div v-if="store.isLoading" class="text-center py-24 text-neutral-400 text-sm">
       Загрузка шаблонов...
     </div>
 
@@ -96,7 +91,7 @@ onMounted(() => {
               <div class="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
               <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
             </div>
-            <span class="text-neutral-400 font-mono truncate max-w-md">Тема: {{ form.subject }}</span>
+            <span class="text-neutral-400 font-mono truncate max-w-md">Тема: {{ store.form.subject }}</span>
           </div>
 
           <div class="p-6 bg-white dark:bg-neutral-900 min-h-[460px] flex justify-center items-start overflow-auto">
@@ -121,22 +116,22 @@ onMounted(() => {
             <UIcon name="i-lucide-code" class="w-4 h-4 text-primary" /> Редактирование верстки и настроек
           </h2>
           <UBadge color="neutral" variant="subtle" size="xs" class="font-mono">
-            slug: {{ selectedSlug }}
+            slug: {{ store.selectedSlug }}
           </UBadge>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <UFormField label="Название шаблона" required>
-            <UInput v-model="form.title" class="w-full" icon="i-lucide-tag" />
+            <UInput v-model="store.form.title" class="w-full" icon="i-lucide-tag" />
           </UFormField>
           <UFormField label="Тема письма (Subject)" required>
-            <UInput v-model="form.subject" class="w-full" icon="i-lucide-heading" />
+            <UInput v-model="store.form.subject" class="w-full" icon="i-lucide-heading" />
           </UFormField>
         </div>
 
-        <!-- Быстрая вставка переменных -->
+        <!-- Быстрая вставка переменных и элементов -->
         <div class="space-y-2 bg-neutral-50 dark:bg-neutral-800/50 p-4 rounded-xl border border-neutral-200/80 dark:border-neutral-700/60">
-          <span class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Быстрая вставка переменных:</span>
+          <span class="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Быстрая вставка:</span>
           <div class="flex flex-wrap gap-2 pt-1">
             <UButton size="xs" variant="subtle" color="neutral" icon="i-lucide-plus" @click="insertVariable('userName')">
               &#123;&#123; userName &#125;&#125;
@@ -147,6 +142,11 @@ onMounted(() => {
             <UButton size="xs" variant="subtle" color="neutral" icon="i-lucide-plus" @click="insertVariable('appUrl')">
               &#123;&#123; appUrl &#125;&#125;
             </UButton>
+
+            <!-- Кнопка вставки логотипа -->
+            <UButton size="xs" variant="subtle" color="primary" icon="i-lucide-image" @click="insertLogo">
+              Вставить логотип
+            </UButton>
           </div>
         </div>
 
@@ -154,7 +154,7 @@ onMounted(() => {
         <UFormField label="HTML-код тела письма" required>
           <UTextarea
             ref="textareaRef"
-            v-model="form.body_html"
+            v-model="store.form.body_html"
             :rows="14"
             class="w-full font-mono text-xs leading-relaxed"
             placeholder="Введите HTML-код письма..."
@@ -162,7 +162,7 @@ onMounted(() => {
         </UFormField>
 
         <div class="flex justify-end pt-4 border-t border-neutral-200 dark:border-neutral-800">
-          <UButton color="primary" icon="i-lucide-save" size="md" :loading="isSaving" @click="saveTemplate">
+          <UButton color="primary" icon="i-lucide-save" size="md" :loading="store.isSaving" @click="store.saveTemplate">
             Сохранить изменения
           </UButton>
         </div>

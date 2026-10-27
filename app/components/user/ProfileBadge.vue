@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getRoleLabel, getRoleColor } from "~/utils/roles.ts";
+import { getRoleLabel } from "~/utils/roles.ts";
 
 export interface UserBadgeProps {
   userName?: string | null
@@ -42,7 +42,7 @@ withDefaults(defineProps<UserBadgeProps>(), {
       <span
         v-if="roleName"
         class="text-[10px] uppercase font-semibold tracking-wider mt-0.5"
-        :class="getRoleColor(roleName)"
+        :class="getRoleStyle(roleName)"
       >
         {{ getRoleLabel(roleName) }}
       </span>

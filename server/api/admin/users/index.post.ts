@@ -3,6 +3,7 @@ import { logger } from '#server/utils/logger'
 import { normalizeAndValidatePhone } from '#server/utils/phone'
 import { prisma } from '#server/utils/prisma'
 import type { UserRole } from '@prisma/client'
+import type { CreateStaffResponse } from '#server/types/admin'
 
 const createStaffSchema = z.object({
   phone: z.string().min(10, 'Введите корректный номер телефона'),
@@ -12,10 +13,10 @@ const createStaffSchema = z.object({
   })
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<CreateStaffResponse> => {
   const log = logger.withTag('admin:users:create')
 
-  // Проверяем сессию администратора
+  // Проверяем сессию администратора[cite: 13]
   const session = await requireUserSession(event)
   if (session.user.role_name !== 'admin') {
     throw createError({
@@ -38,7 +39,7 @@ export default defineEventHandler(async (event) => {
   const userName = parseResult.data.user_name?.trim() || 'Сотрудник'
   const roleName = parseResult.data.role_name as UserRole
 
-  // 1. Проверяем, существует ли уже пользователь с таким телефоном
+  // 1. Проверяем, существует ли уже пользователь с таким телефоном[cite: 13]
   const existingUser = await prisma.users.findUnique({
     where: { phone }
   })
@@ -50,7 +51,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 2. Создаем сотрудника напрямую с ролью из enum
+  // 2. Создаем сотрудника напрямую с ролью из enum[cite: 13]
   const newUser = await prisma.users.create({
     data: {
       phone,

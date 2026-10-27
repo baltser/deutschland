@@ -37,19 +37,26 @@ const emit = defineEmits(['update:clientName', 'update:clientPhone', 'add', 'pho
     <form class="space-y-3 pt-2 border-t border-neutral-100 dark:border-neutral-800" @submit.prevent="emit('add')">
       <UInput
         :model-value="clientName"
+        size="sm"
         placeholder="Имя клиента (необязательно)"
         icon="i-lucide-user"
-        size="sm"
-        @update:model-value="val => emit('update:clientName', val)"
+        @update:model-value="(val: any) => emit('update:clientName', val)"
       />
       <div class="flex gap-2">
-        <UInput
+<!--        <UInput-->
+<!--          :model-value="clientPhone"-->
+<!--          placeholder="+7 (999) 000-00-00"-->
+<!--          icon="i-lucide-phone"-->
+<!--          class="flex-1"-->
+<!--          size="sm"-->
+<!--          @update:model-value="val => emit('phoneInput', val)"-->
+<!--        />-->
+        <AppPhoneInput
           :model-value="clientPhone"
-          placeholder="+7 (999) 000-00-00"
-          icon="i-lucide-phone"
-          class="flex-1"
           size="sm"
-          @update:model-value="val => emit('phoneInput', val)"
+          placeholder="+7 (999) 000-00-00"
+          class="flex-1"
+          @update:model-value="(val: any) => emit('update:clientPhone', val)"
         />
         <UButton
           type="submit"

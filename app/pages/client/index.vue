@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import { useClientAddressesStore } from '~/stores/client/addresses'
+
 definePageMeta({
   layout: 'client',
 })
 
-// Запрашиваем адреса и оборудование текущего авторизованного клиента
-const { data: responseData, pending, error, refresh } = await useFetch('/api/client/addresses')
-const addresses = computed(() => responseData.value?.addresses || [])
+const store = useClientAddressesStore()
 
 useSeoMeta({
   title: 'Мои объекты и оборудование',
@@ -28,25 +28,25 @@ useSeoMeta({
         color="neutral"
         size="sm"
         icon="i-lucide-refresh-cw"
-        :loading="pending"
-        @click="() => refresh()"
+        :loading="store.pending"
+        @click="() => store.fetchAddresses()"
       >
         Обновить
       </UButton>
     </div>
 
     <!-- Ошибка загрузки -->
-    <div v-if="error" class="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-2xl p-6 text-red-600 dark:text-red-400 text-sm">
+    <div v-if="store.error" class="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-2xl p-6 text-red-600 dark:text-red-400 text-sm">
       Не удалось загрузить ваши данные. Попробуйте обновить страницу.
     </div>
 
     <!-- Состояние загрузки -->
-    <div v-else-if="pending" class="py-16 text-center text-neutral-400 text-sm">
+    <div v-else-if="store.pending" class="py-16 text-center text-neutral-400 text-sm">
       Загрузка ваших объектов...
     </div>
 
     <!-- Если у клиента нет привязанных адресов -->
-    <div v-else-if="addresses.length === 0" class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-12 text-center space-y-3 shadow-xs">
+    <div v-else-if="store.addresses.length === 0" class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-12 text-center space-y-3 shadow-xs">
       <div class="w-12 h-12 mx-auto rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400">
         <UIcon name="i-lucide-home" class="w-6 h-6" />
       </div>
@@ -59,7 +59,7 @@ useSeoMeta({
     <!-- Список адресов и оборудования -->
     <div v-else class="space-y-6">
       <div
-        v-for="addr in addresses"
+        v-for="addr in store.addresses"
         :key="addr.address_id"
         class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-xs space-y-4"
       >

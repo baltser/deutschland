@@ -1,7 +1,7 @@
 import { prisma } from '#server/utils/prisma'
+import type { CreateDeviceResponse } from '#server/types/admin'
 
-export default defineEventHandler(async (event) => {
-  // Проверяем сессию администратора
+export default defineEventHandler(async (event): Promise<CreateDeviceResponse> => {
   await requireUserSession(event)
 
   const idParam = event.context.params?.id
@@ -24,7 +24,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Проверяем, существует ли указанный адрес
   const address = await prisma.addresses.findUnique({
     where: { address_id: addressId },
   })
@@ -37,7 +36,6 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Создаем устройство в базе данных и привязываем к адресу
     const newDevice = await prisma.devices.create({
       data: {
         device_name: device_name.trim(),

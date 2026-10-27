@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useForm } from "~/composables/auth/useForm.ts";
+import { getCleanPhone } from "~/utils/phone.ts"; // 💡 Импортируем утилиту очистки телефона
+
 definePageMeta({ layout: 'auth' })
 
 useSeoMeta({
@@ -14,13 +17,11 @@ const {
   step,
   phoneCode,
   sendRegistrationCode,
-  verifyAndRegister,
-  handlePhoneInput,
-  getCleanPhone
-} = useAuthForm()
+  verifyAndRegister
+} = useForm()
 
 async function onSubmit() {
-  const phone = getCleanPhone()
+  const phone = getCleanPhone(state.phone) // 💡 Передаем текущий телефон для очистки
   if (!phone) {
     errorMessage.value = 'Введите номер телефона'
     return
@@ -50,7 +51,7 @@ async function onVerifyCode() {
     return
   }
 
-  const phone = getCleanPhone()
+  const phone = getCleanPhone(state.phone)
 
   await verifyAndRegister({
     phone,
@@ -63,24 +64,19 @@ async function onVerifyCode() {
   <AuthCard
     title="Регистрация"
     :description="step === 'input' ? 'Введите телефон и придумайте пароль' : 'Введите последние 4 цифры входящего номера'"
-    :error-message="errorMessage"
+    :error-message="errorMessage ?? undefined"
     footer-text="Уже есть аккаунт?"
     footer-link-text="Войти"
     footer-to="/auth/login"
   >
     <!-- Шаг 1: Форма ввода телефона и пароля -->
     <UForm v-if="step === 'input'" :state="state" class="space-y-4" @submit="onSubmit">
-      <UFormField label="Номер телефона" name="phone" required>
-        <UInput
-          :model-value="state.phone"
-          type="tel"
-          placeholder="+7 (999) 000-00-00"
-          icon="i-lucide-phone"
-          size="lg"
-          class="w-full"
-          @update:model-value="handlePhoneInput"
-        />
-      </UFormField>
+      <AppPhoneInput
+        v-model="state.phone"
+        label="Номер телефона"
+        name="phone"
+        required
+      />
 
       <UFormField label="Пароль" name="password" required>
         <UInput

@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import path from 'node:path'
 import { logger } from '#server/utils/logger'
 import { renderEmailTemplate, DEFAULT_VERIFICATION_TEMPLATE } from '#server/utils/emailTemplates'
 
@@ -28,7 +29,10 @@ export async function sendVerificationEmail(toEmail: string, token: string, user
   const subject = renderEmailTemplate(rawSubject, variables)
   const html = renderEmailTemplate(rawHtml, variables)
 
-  // Читаем параметры SMTP напрямую из process.env (актуально на момент запуска в Docker)
+  // Путь к файлу логотипа в папке public
+  const logoPath = path.resolve(process.cwd(), 'public/images/logo.light.png')
+
+  // Читаем параметры SMTP напрямую из process.env
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.mail.ru',
     port: Number(process.env.SMTP_PORT) || 465,
@@ -44,7 +48,15 @@ export async function sendVerificationEmail(toEmail: string, token: string, user
       from: process.env.SMTP_FROM || '"Двор на замок" <motokawasaki@mail.ru>',
       to: toEmail,
       subject,
-      html
+      html,
+      // 💡 Прикрепляем логотип для использования через cid:logo@dnz в HTML
+      attachments: [
+        {
+          filename: 'logo.light.png',
+          path: logoPath,
+          cid: 'logo@dnz'
+        }
+      ]
     })
 
     log.success(`Письмо подтверждения успешно отправлено на ${toEmail} (ID: ${info.messageId})`)

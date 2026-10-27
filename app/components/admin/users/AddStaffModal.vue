@@ -41,15 +41,13 @@ const currentRole = computed({
   <UModal v-model:open="isOpen" title="Добавить нового сотрудника">
     <template #body>
       <form class="space-y-4" @submit.prevent="$emit('submit')">
-        <UFormField label="Номер телефона *">
-          <UInput
-            v-model="currentPhone"
-            placeholder="+7 (999) 000-00-00"
-            icon="i-lucide-phone"
-            class="w-full"
-            @update:model-value="(val) => emit('update:phone', val)"
-          />
-        </UFormField>
+        <!-- 💡 Исправлено: теперь используем v-model="currentPhone" напрямую, без несуществующего clientPhone -->
+        <AppPhoneInput
+          v-model="currentPhone"
+          placeholder="+7 (999) 000-00-01"
+          size="sm"
+          class="w-full"
+        />
 
         <UFormField label="Имя и фамилия (необязательно)">
           <UInput

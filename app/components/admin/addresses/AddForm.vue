@@ -17,11 +17,11 @@ defineEmits<{
     <form class="flex flex-col sm:flex-row gap-3" @submit.prevent="$emit('submit')">
       <UInput
         :model-value="modelValue"
+        size="lg"
         placeholder="Например: г. Франкфурт, ул. Штрассе, д. 5"
         icon="i-lucide-map-pin"
         class="flex-1"
-        size="lg"
-        @update:model-value="(val) => $emit('update:modelValue', val)"
+        @update:model-value="(val: any) => $emit('update:modelValue', val)"
       />
       <UButton
         type="submit"

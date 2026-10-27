@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAdminAddresses } from '~/composables/admin/addresses/useAdminAddresses.ts'
+import { useAdminAddressesStore } from '~/stores/admin/addresses.ts'
 
 definePageMeta({ layout: 'admin' })
 
@@ -8,20 +8,36 @@ useSeoMeta({
   description: 'Список объектов и физических адресов'
 })
 
-const {
-  addresses,
-  newAddressText,
-  pending,
-  isSubmitting,
-  handleAddAddress
-} = useAdminAddresses()
+const store = useAdminAddressesStore()
+
+const newAddressText = ref('')
+const isSubmitting = ref(false)
+
+// Автоматически загружаем адреса, если список пуст
+if (store.addresses.length === 0 && !store.loading) {
+  store.fetchAddresses()
+}
+
+const addresses = computed(() => store.addresses)
+const pending = computed(() => store.loading)
+
+// Функция добавления с очисткой поля ввода
+async function handleAddAddress() {
+  if (!newAddressText.value.trim()) return
+
+  isSubmitting.value = true
+  const success = await store.createAddress(newAddressText.value)
+  if (success) {
+    newAddressText.value = ''
+  }
+  isSubmitting.value = false
+}
 
 // Обработка клика по адресу из списка
 function handleSelectAddress(item: unknown) {
   const addressItem = item as { address_id: number }
   navigateTo(`/admin/addresses/${addressItem.address_id}`)
 }
-
 </script>
 
 <template>

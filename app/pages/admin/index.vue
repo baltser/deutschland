@@ -16,16 +16,6 @@ useSeoMeta({
         <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-1">Центр администрирования объектов, персонала и настроек</p>
       </div>
 
-      <div class="flex items-center gap-3">
-        <UButton
-          to="/admin/addresses"
-          icon="i-lucide-map-pin"
-          color="primary"
-          size="sm"
-        >
-          Управление адресами
-        </UButton>
-      </div>
     </div>
 
     <!-- Основные разделы (Карточки навигации) -->

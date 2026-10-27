@@ -1,38 +1,50 @@
 <script setup lang="ts">
-export interface ClientAddressRelation {
-  address_id: number
-  address?: {
-    address_id: number
-    address_name: string
-  } | null
-  [key: string]: unknown
-}
+import type { ClientUser } from '~/types/user'
 
-export interface ClientItem {
-  user_id: number
-  user_name?: string | null
-  phone?: string
-  email?: string | null
-  avatar_path?: string | null
-  activated_at?: string | Date | null
-  addresses?: ClientAddressRelation[]
-  [key: string]: unknown
-}
-
-defineProps<{
-  clients: ClientItem[]
+const props = defineProps<{
+  clients: ClientUser[]
+  loading?: boolean
+  error?: unknown
 }>()
 
 defineEmits<{
-  select: [client: ClientItem]
+  select: [client: ClientUser]
 }>()
+
+// Безопасное извлечение текста ошибки
+const errorMessage = computed(() => {
+  if (!props.error) return ''
+  if (typeof props.error === 'object') {
+    const err = props.error as { message?: string; data?: { message?: string } }
+    return err.message || err.data?.message || 'Произошла неизвестная ошибка'
+  }
+  return String(props.error)
+})
 </script>
 
 <template>
   <UCard>
-    <div v-if="clients.length === 0" class="p-12 text-center text-neutral-400">
+    <!-- Индикатор загрузки -->
+    <div v-if="loading" class="flex justify-center py-12">
+      <UIcon name="i-lucide-loader-2" class="animate-spin text-2xl text-primary" />
+    </div>
+
+    <!-- Сообщение об ошибке -->
+    <UAlert
+      v-else-if="error"
+      color="error"
+      variant="soft"
+      title="Ошибка загрузки"
+      :description="errorMessage"
+      class="mb-6"
+    />
+
+    <!-- Пустое состояние -->
+    <div v-else-if="clients.length === 0" class="p-12 text-center text-neutral-400">
       Клиенты не найдены
     </div>
+
+    <!-- Таблица -->
     <div v-else class="overflow-x-auto">
       <table class="w-full text-left border-collapse">
         <thead>

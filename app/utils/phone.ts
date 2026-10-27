@@ -23,3 +23,13 @@ export const formatPhone = (value: string) => {
   }
   return result
 }
+/**
+ * Очищает номер телефона для отправки на бэкенд (оставляет только цифры, заменяя 8 на 7)
+ */
+export function getCleanPhone(phone: string): string {
+  let cleaned = phone.replace(/\D/g, '')
+  if (cleaned.startsWith('8') && cleaned.length === 11) {
+    cleaned = '7' + cleaned.slice(1)
+  }
+  return cleaned
+}

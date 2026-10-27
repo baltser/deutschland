@@ -1,13 +1,12 @@
-<!-- app/components/AppSidebarLayoutShell.vue -->
 <script setup lang="ts">
-import { useAuthStore } from '~/stores/auth'
+import { useAuthSessionStore } from '~/stores/auth/session'
 
 defineProps<{
   menuItems: Array<{ label: string; to: string; icon: string }>
   title?: string
 }>()
 
-const authStore = useAuthStore()
+const authStore = useAuthSessionStore()
 const isMobileMenuOpen = ref(false)
 const route = useRoute()
 
@@ -15,11 +14,11 @@ const route = useRoute()
 function isLinkActive(linkTo: string): boolean {
   return route.fullPath === linkTo || (route.path === linkTo && !route.query.tab)
 }
-
 async function onLogout() {
+  await handleLogout()
   isMobileMenuOpen.value = false
-  await authStore.logout()
 }
+
 </script>
 
 <template>
@@ -62,9 +61,9 @@ async function onLogout() {
       <div class="p-4 border-t border-default space-y-3 bg-neutral-50/50 dark:bg-neutral-900/30">
         <UserProfileBadge
           v-if="authStore.user"
-          :user-name="authStore.user?.user_name"
+          :user-name="authStore.user.user_name"
           :role-name="authStore.roleName"
-          :avatar-url="authStore.user?.avatar_path"
+          :avatar-url="authStore.user.avatar_path"
           to="/profile"
         />
         <UButton
@@ -130,9 +129,9 @@ async function onLogout() {
           <div class="space-y-6">
             <UserProfileBadge
               v-if="authStore.user"
-              :user-name="authStore.user?.user_name"
+              :user-name="authStore.user.user_name"
               :role-name="authStore.roleName"
-              :avatar-url="authStore.user?.avatar_path"
+              :avatar-url="authStore.user.avatar_path"
               to="/profile"
               @click="isMobileMenuOpen = false"
             />

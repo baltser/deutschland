@@ -1,14 +1,8 @@
 <script setup lang="ts">
-export interface ClientAddressItem {
-  address_id: number
-  address?: {
-    address_id: number
-    address_name: string
-  }
-}
+import type { ClientAddressRelation } from '~/types/user'
 
 defineProps<{
-  addresses?: ClientAddressItem[]
+  addresses?: ClientAddressRelation[]
 }>()
 </script>
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useProfile } from '~/composables/useProfile'
-import {getRoleLabel} from "~/utils/roles.ts";
+import { useProfile } from '~/composables/profile/useProfile'
+import { getRoleLabel, getRoleColor } from '~/utils/roles'
 
 definePageMeta({
   layout: 'profile',
@@ -11,6 +11,10 @@ useSeoMeta({
   description: 'Управление учетной записью и профилем в системе'
 })
 
+const route = useRoute()
+const toast = useToast()
+
+// 💡 Простая и надежная деструктуризация
 const {
   state,
   isLoading,
@@ -19,15 +23,12 @@ const {
   passwordError,
   isDirty,
   isEmailVerified,
-  profileUser: user,
+  user,
   initProfile,
   saveProfile,
   sendVerificationEmail,
   handleAvatarUpdated
 } = useProfile()
-
-const route = useRoute()
-const toast = useToast()
 
 onMounted(async () => {
   await initProfile()
@@ -52,15 +53,6 @@ onMounted(async () => {
         <h1 class="text-xl font-bold tracking-tight text-neutral-900 dark:text-white">Личный кабинет</h1>
         <p class="text-xs text-neutral-500 dark:text-neutral-400">Управление профилем и настройками</p>
       </div>
-      <UButton
-        to="/"
-        variant="subtle"
-        color="neutral"
-        size="xs"
-        icon="i-lucide-arrow-left"
-      >
-        В систему
-      </UButton>
     </div>
 
     <!-- 1. Карточка профиля -->

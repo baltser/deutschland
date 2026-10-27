@@ -1,11 +1,12 @@
 import { logger } from '#server/utils/logger'
 import { prisma } from '#server/utils/prisma'
 import type { UserRole } from '@prisma/client'
+import type { AdminUserUpdateResponse, UpdateUserBody } from '#server/types/admin'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<AdminUserUpdateResponse> => {
   const log = logger.withTag('admin:users:update')
 
-  // 1. Проверяем авторизацию и права администратора
+  // 1. Проверяем авторизацию и права администратора[cite: 12]
   const session = await requireUserSession(event)
   if (session.user.role_name !== 'admin') {
     throw createError({
@@ -14,7 +15,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 2. Получаем ID пользователя из параметров URL
+  // 2. Получаем ID пользователя из параметров URL[cite: 12]
   const id = getRouterParam(event, 'id')
   if (!id) {
     throw createError({
@@ -23,7 +24,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const body = await readBody(event)
+  const body = await readBody<UpdateUserBody>(event)
   const userId = Number(id)
 
   const updateData: {
@@ -32,12 +33,12 @@ export default defineEventHandler(async (event) => {
     avatar_path?: string | null
   } = {}
 
-  // 3. Если передано имя
+  // 3. Если передано имя[cite: 12]
   if (body.user_name !== undefined && body.user_name !== null) {
     updateData.user_name = String(body.user_name).trim()
   }
 
-  // 4. Если передана роль, валидируем её по Enum UserRole
+  // 4. Если передана роль, валидируем её по Enum UserRole[cite: 12]
   if (body.role_name) {
     const normalizedRole = String(body.role_name).trim().toLowerCase()
     const validRoles: UserRole[] = ['admin', 'installer', 'manager', 'client']
@@ -52,13 +53,13 @@ export default defineEventHandler(async (event) => {
     updateData.role_name = normalizedRole as UserRole
   }
 
-  // 5. Если передан путь к аватару
+  // 5. Если передан путь к аватару[cite: 12]
   if (body.avatar_path !== undefined) {
     updateData.avatar_path = body.avatar_path
   }
 
   try {
-    // 6. Обновляем пользователя в базе данных (без связи с roles)
+    // 6. Обновляем пользователя в базе данных[cite: 12]
     const updatedUser = await prisma.users.update({
       where: { user_id: userId },
       data: updateData,
@@ -74,7 +75,8 @@ export default defineEventHandler(async (event) => {
         email: updatedUser.email,
         phone: updatedUser.phone,
         role_name: updatedUser.role_name,
-        avatar_path: updatedUser.avatar_path
+        avatar_path: updatedUser.avatar_path,
+        activated_at: updatedUser.activated_at
       }
     }
   } catch (err: unknown) {

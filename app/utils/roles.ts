@@ -10,8 +10,7 @@ export function getRoleLabel(role?: string | null): string {
       return 'Пользователь'
   }
 }
-export function getRoleColor(role?: string | null): string {
-  switch (role) {
+export function getRoleColor(role?: string): 'error' | 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'neutral' {  switch (role) {
     case 'admin':
       return 'error'
     case 'installer':

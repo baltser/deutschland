@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AddressItem } from '~/stores/adminAddresses'
+import type { AddressItem } from '~/types/address.ts'
 
 defineProps<{
   addresses: AddressItem[]

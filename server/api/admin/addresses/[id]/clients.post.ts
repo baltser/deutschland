@@ -1,14 +1,14 @@
 import { z } from 'zod'
 import { normalizeAndValidatePhone } from '#server/utils/phone'
 import { prisma } from '#server/utils/prisma'
+import type { AddClientToAddressResponse } from '#server/types/admin'
 
 const addClientSchema = z.object({
   phone: z.string().min(10, 'Введите корректный номер телефона'),
   user_name: z.string().optional()
 })
 
-export default defineEventHandler(async (event) => {
-  // Проверка прав администратора
+export default defineEventHandler(async (event): Promise<AddClientToAddressResponse> => {
   const session = await getUserSession(event)
   if (!session || !session.user || session.user.role_name !== 'admin') {
     throw createError({ statusCode: 403, message: 'Доступ запрещен' })
@@ -34,25 +34,22 @@ export default defineEventHandler(async (event) => {
   const phone = normalizeAndValidatePhone(parseResult.data.phone)
   const userName = parseResult.data.user_name?.trim() || 'Клиент'
 
-  // 1. Ищем пользователя по телефону в таблице users
   let user = await prisma.users.findUnique({
     where: { phone }
   })
 
-  // 2. Если пользователь не найден — создаем нового с ролью 'client' (без запроса к roles)
   if (!user) {
     user = await prisma.users.create({
       data: {
         phone,
         user_name: userName,
         password: null,
-        role_name: 'client', // 👈 Используем новый Enum UserRole напрямую
+        role_name: 'client',
         activated_at: null
       }
     })
   }
 
-  // 3. Привязываем пользователя к адресу через промежуточную таблицу (если еще не привязан)
   try {
     await prisma.clients_x_addresses.create({
       data: {
@@ -61,7 +58,6 @@ export default defineEventHandler(async (event) => {
       }
     })
   } catch (e: unknown) {
-    // P2002 — ошибка уникальности, значит связь уже существует
     const err = e as { code?: string }
     if (err.code !== 'P2002') {
       throw e

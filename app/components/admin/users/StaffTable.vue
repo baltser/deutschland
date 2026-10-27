@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import type { AdminUserItem } from '~/stores/adminUsers.ts'
+import type { StaffUser } from '~/types/user'
+import {getRoleColor, getRoleLabel} from "~/utils/roles.ts";
 
 const props = defineProps<{
-  users: AdminUserItem[]
+  users: StaffUser[]
   loading: boolean
   error: unknown
 }>()
 
 defineEmits<{
-  select: [user: AdminUserItem]
+  select: [user: StaffUser]
 }>()
 
 const errorMessage = computed(() => {
@@ -104,11 +105,11 @@ const errorMessage = computed(() => {
           <!-- Роль (бейджик) -->
           <td class="p-4 text-right">
             <UBadge
-              :color="u.role_name === 'admin' ? 'error' : 'warning'"
+              :color="getRoleColor(u.role_name)"
               variant="subtle"
               size="sm"
             >
-              {{ u.role_name }}
+              {{ getRoleLabel(u.role_name) }}
             </UBadge>
           </td>
         </tr>

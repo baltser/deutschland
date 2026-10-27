@@ -1,7 +1,8 @@
 import { logger } from '#server/utils/logger'
 import { prisma } from '#server/utils/prisma'
+import type { ClientsListResponse } from '#server/types/admin'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<ClientsListResponse> => {
   const session = await getUserSession(event)
   if (!session || !session.user || session.user.role_name !== 'admin') {
     throw createError({ statusCode: 403, message: 'Доступ запрещен' })

@@ -1,22 +1,44 @@
 <script setup lang="ts">
-
 definePageMeta({ layout: 'admin' })
 
 const route = useRoute()
 const addressId = (Array.isArray(route.params.id) ? route.params.id[0] : route.params.id) || ''
 
-// Данные адреса
+// 1. Загрузка данных адреса
 const { data: addressData, pending, error, refresh } = await useFetch(`/api/admin/addresses/${addressId}`)
 const address = computed(() => addressData.value?.address)
 
-// Подключаем логику клиентов из composable
-const {
-  clientPhone,
-  clientName,
-  isAddingClient,
-  handlePhoneInput,
-  handleAddClient
-} = useAddressClients(addressId, refresh)
+// 2. Логика управления клиентами (перенесена прямо на страницу)
+const clientPhone = ref('')
+const clientName = ref('')
+const isAddingClient = ref(false)
+
+function handlePhoneInput(val: string) {
+  clientPhone.value = val
+}
+
+async function handleAddClient() {
+  if (!clientPhone.value || clientPhone.value.length < 10) return
+
+  isAddingClient.value = true
+  try {
+    await $fetch(`/api/admin/addresses/${addressId}/clients`, {
+      method: 'POST',
+      body: {
+        phone: clientPhone.value,
+        user_name: clientName.value.trim() || undefined
+      }
+    })
+
+    clientPhone.value = ''
+    clientName.value = ''
+    await refresh()
+  } catch (err: unknown) {
+    console.error('Ошибка добавления клиента к адресу:', err)
+  } finally {
+    isAddingClient.value = false
+  }
+}
 
 useSeoMeta({
   title: computed(() => address.value ? `Адрес: ${address.value.address_name}` : 'Детали адреса'),
@@ -68,10 +90,10 @@ useSeoMeta({
           @add="handleAddClient"
         />
 
-        <!-- Карточка оборудования (заглушка) -->
+        <!-- Карточка оборудования -->
         <AdminAddressesDevicesPlaceholder
           :devices="address?.devices || []"
-          :address-id="addressId"
+          :address-id="Number(addressId)"
           @refresh="refresh"
         />
       </div>

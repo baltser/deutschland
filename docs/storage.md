@@ -19,7 +19,7 @@
 
 ---
 
-## 1. `adminAddressesStore` (`adminAddresses.ts`)
+## 1. `adminAddressesStore` (`addresses.ts`)
 Управление физическими адресами и объектами в административной панели.
 
 * **Состояние (`state`):**
@@ -46,7 +46,7 @@
 
 ---
 
-## 3. `adminUsersStore` (`adminUsers.ts`)
+## 3. `adminUsersStore` (`staff.ts`)
 Управление сотрудниками системы (администраторы, монтажники, менеджеры).
 
 * **Состояние (`state`):**

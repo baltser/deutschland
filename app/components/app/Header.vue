@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { useAuthStore } from '~/stores/auth'
+import { useAuthSessionStore } from '~/stores/auth/session'
 
-const authStore = useAuthStore()
+const authStore = useAuthSessionStore()
 const isMenuOpen = ref(false)
 
-// Динамические ссылки навигации на основе геттеров из стора
+// Динамические ссылки навигации на основе геттеров из стора сессии
 const navLinks = computed(() => {
   const links = [
     { label: 'Главная', to: '/', icon: 'i-lucide-home' },
@@ -19,10 +19,9 @@ const navLinks = computed(() => {
   return links
 })
 
-// Настоящий серверный logout через стор
 async function onLogout() {
+  await handleLogout()
   isMenuOpen.value = false
-  await authStore.logout()
 }
 </script>
 
@@ -41,18 +40,15 @@ async function onLogout() {
         <!-- Десктопный блок действий -->
         <div class="hidden md:flex items-center gap-2">
           <UColorModeButton />
-          <UserProfileBadge
-            v-if="authStore.user"
-            :user-name="authStore.user?.user_name"
-            :role-name="authStore.roleName"
-            :avatar-url="authStore.user?.avatar_path"
-            to="/profile"
-          />
+
+          <!-- Авторизованный пользователь -->
           <template v-if="authStore.isAuthenticated && authStore.user">
-<!--            <UserProfileBadge-->
-<!--              :user-name="authStore.user.user_name"-->
-<!--              :role-name="authStore.roleName"-->
-<!--            />-->
+            <UserProfileBadge
+              :user-name="authStore.user.user_name"
+              :role-name="authStore.roleName"
+              :avatar-url="authStore.user.avatar_path"
+              to="/profile"
+            />
 
             <UButton
               color="neutral"
@@ -66,6 +62,7 @@ async function onLogout() {
             </UButton>
           </template>
 
+          <!-- Гость -->
           <template v-else>
             <UButton to="/auth/login" variant="ghost" color="neutral" size="sm" icon="i-lucide-log-in">
               Войти
@@ -108,21 +105,12 @@ async function onLogout() {
 
         <div class="pt-4 border-t border-default space-y-3">
           <template v-if="authStore.isAuthenticated && authStore.user">
-<!--            <div class="flex items-center gap-3 px-2 py-1">-->
-<!--              <div class="p-2 rounded-full bg-primary-500/10 text-primary">-->
-<!--                <UIcon name="i-lucide-user" class="w-5 h-5" />-->
-<!--              </div>-->
-<!--              <div class="flex flex-col">-->
-<!--                <span class="font-medium text-sm">{{ authStore.user.phone }}</span>-->
-<!--                <span class="text-xs text-neutral-500 dark:text-neutral-400">{{ authStore.roleName }}</span>-->
-<!--              </div>-->
-<!--            </div>-->
             <UserProfileBadge
-              v-if="authStore.user"
-              :user-name="authStore.user?.user_name"
+              :user-name="authStore.user.user_name"
               :role-name="authStore.roleName"
-              :avatar-url="authStore.user?.avatar_path"
+              :avatar-url="authStore.user.avatar_path"
               to="/profile"
+              @click="isMenuOpen = false"
             />
             <UButton
               color="error"

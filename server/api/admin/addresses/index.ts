@@ -1,13 +1,14 @@
 import { z } from 'zod'
+import type { AddressesListResponse, CreateAddressResponse } from '#server/types/admin'
 
 const createAddressSchema = z.object({
   address_name: z.string().min(3, 'Адрес слишком короткий (минимум 3 символа)')
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<AddressesListResponse | CreateAddressResponse> => {
   const method = getMethod(event)
 
-  // 1. GET: Получение всех адресов
+  // 1. GET: Получение всех адресов[cite: 14]
   if (method === 'GET') {
     const addresses = await prisma.addresses.findMany({
       include: {
@@ -30,7 +31,7 @@ export default defineEventHandler(async (event) => {
     return { addresses }
   }
 
-  // 2. POST: Создание нового адреса
+  // 2. POST: Создание нового адреса[cite: 14]
   if (method === 'POST') {
     const body = await readBody(event)
     const parseResult = createAddressSchema.safeParse(body)
@@ -42,7 +43,6 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // 👈 Извлекаем правильное поле address_name
     const { address_name } = parseResult.data
 
     try {
@@ -56,7 +56,6 @@ export default defineEventHandler(async (event) => {
       }
     } catch (e: unknown) {
       const prismaErr = e as { code?: string }
-      // Ошибка уникальности (если такой адрес уже есть)
       if (prismaErr.code === 'P2002') {
         throw createError({
           statusCode: 400,

@@ -1,46 +1,17 @@
-<!-- app/pages/installer/index.vue -->
 <script setup lang="ts">
+import { useInstallerDevices } from '~/composables/installer/useInstallerDevices'
+
 definePageMeta({
   layout: 'installer',
 })
 
-const route = useRoute()
-const router = useRouter()
-
-type TabType = 'PANEL' | 'CAMERA' | 'all'
-
-// 1. Читаем вкладку из URL query (по умолчанию 'PANEL')
-const activeTab = computed<TabType>({
-  get: () => {
-    const tab = route.query.tab as TabType
-    if (['PANEL', 'CAMERA', 'all'].includes(tab)) return tab
-    return 'PANEL'
-  },
-  set: (val) => {
-    router.replace({ query: { ...route.query, tab: val } })
-  }
-})
-
-// 2. Получаем все данные один раз
-const { data: responseData, pending, error, refresh } = await useFetch('/api/installer/devices')
-
-const rawAddresses = computed(() => responseData.value?.addresses || [])
-
-// 3. ПОНЯТНАЯ ЛОГИКА ФИЛЬТРАЦИИ:
-const addresses = computed(() => {
-  // Если выбран режим "Все оборудование" — возвращаем сырые данные без фильтрации!
-  if (activeTab.value === 'all') {
-    return rawAddresses.value
-  }
-
-  // Для конкретных вкладок оставляем только соответствующие девайсы
-  return rawAddresses.value
-    .map(addr => ({
-      ...addr,
-      devices: (addr.devices || []).filter(d => d.device_type === activeTab.value)
-    }))
-    .filter(addr => addr.devices.length > 0)
-})
+const {
+  activeTab,
+  addresses,
+  pending,
+  error,
+  refresh
+} = useInstallerDevices()
 
 useSeoMeta({
   title: 'Кабинет монтажника',

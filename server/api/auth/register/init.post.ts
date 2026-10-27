@@ -3,25 +3,24 @@ import { z } from 'zod'
 import { getRedisClient } from '#server/utils/redis'
 import { logger } from '#server/utils/logger'
 import { normalizeAndValidatePhone } from '#server/utils/phone'
+import type { RegisterInitResponse } from '#server/types/auth'
 
 const initSchema = z.object({
   phone: z.string().min(10, 'Введите номер телефона'),
   password: z.string().min(6, 'Пароль должен быть не менее 6 символов')
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<RegisterInitResponse> => {
   const log = logger.withTag('auth:register:init')
   const body = await readValidatedBody(event, (b) => initSchema.parse(b))
   const phone = normalizeAndValidatePhone(body.phone)
   const { password } = body
 
-  // 1. Проверяем, есть ли такой предзаписанный пользователь в базе
   const existingUser = await prisma.users.findUnique({
     where: { phone }
   })
 
   if (!existingUser) {
-    // 💡 Логируем информативно в консоль сервера перед броском ошибки
     log.warn(`Попытка регистрации с не зарегистрированным в базе номером: ${phone}`)
     throw createError({
       statusCode: 403,
@@ -29,7 +28,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 2. Проверяем, не активирован ли он уже
   if (existingUser.activated_at !== null) {
     log.warn(`Попытка повторной регистрации уже активированного аккаунта: ${phone}`)
     throw createError({
@@ -38,7 +36,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 3. Вызываем внешний сервис uCaller для Flash Call
   const secretKey = process.env.UCALLER_SECRET_KEY
   const serviceId = process.env.UCALLER_SERVICE_ID
 
@@ -68,7 +65,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 4. Хэшируем пароль и сохраняем временный черновик в Redis на 3 минуты
   const hashedPassword = await bcrypt.hash(password, 10)
   const redis = getRedisClient()
 

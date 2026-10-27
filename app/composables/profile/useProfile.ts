@@ -1,4 +1,4 @@
-import {useProfileStore} from "~/stores/profile";
+import { useProfileStore } from '~/stores/profile'
 
 export function useProfile() {
   const store = useProfileStore()
@@ -17,7 +17,7 @@ export function useProfile() {
 
   const normalizeEmail = (val?: string | null) => (val || '').trim().toLowerCase()
 
-  // Загружаем данные через новый стор клиента
+  // Загрузка данных профиля
   async function initProfile() {
     await store.fetchProfile()
     if (store.profile) {
@@ -48,7 +48,7 @@ export function useProfile() {
     toast.add({ title, description, color, icon })
   }
 
-  // Сохранение через стор и эндпоинт PATCH /api/client/profile
+  // Сохранение профиля
   async function saveProfile() {
     if (passwordError.value) {
       notify('Ошибка', 'Пароли не совпадают', 'error')
@@ -57,11 +57,30 @@ export function useProfile() {
 
     isLoading.value = true
     try {
-      await store.updateProfile({
-        user_name: state.name,
-        email: state.email || undefined,
-        ...(state.password ? { password: state.password } : {})
-      })
+      const payload: { user_name?: string; email?: string | null; password?: string } = {}
+
+      const currentName = (store.profile?.user_name || '').trim()
+      const newName = state.name.trim()
+      if (newName !== currentName) {
+        payload.user_name = newName
+      }
+
+      const currentEmail = (store.profile?.email || '').trim().toLowerCase()
+      const newEmail = state.email.trim().toLowerCase()
+      if (newEmail !== currentEmail) {
+        payload.email = newEmail === '' ? null : newEmail
+      }
+
+      if (state.password) {
+        payload.password = state.password
+      }
+
+      if (Object.keys(payload).length === 0) {
+        notify('Информация', 'Нет изменений для сохранения', 'warning')
+        return true
+      }
+
+      await store.updateProfile(payload)
 
       notify('Успешно', 'Профиль обновлен', 'success')
       state.password = ''
@@ -88,7 +107,7 @@ export function useProfile() {
         body: { email: state.email.trim() }
       })
 
-      await store.fetchProfile(true) // Принудительно обновляем данные
+      await store.fetchProfile(true)
 
       if (store.profile) {
         state.name = store.profile.user_name || ''
@@ -117,7 +136,7 @@ export function useProfile() {
     passwordError,
     isDirty,
     isEmailVerified,
-    profileUser: computed(() => store.profile),
+    user: computed(() => store.profile),
     initProfile,
     saveProfile,
     sendVerificationEmail,

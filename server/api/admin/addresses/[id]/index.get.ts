@@ -1,6 +1,7 @@
 import { prisma } from '#server/utils/prisma'
+import type { SingleAddressResponse } from '#server/types/admin'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<SingleAddressResponse> => {
   await requireUserSession(event)
 
   const id = Number(event.context.params?.id)

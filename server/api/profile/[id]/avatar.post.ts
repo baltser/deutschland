@@ -1,7 +1,8 @@
 import { uploadFileToMinio, getMinioClient } from '#server/utils/minio.ts'
 import { logger } from '#server/utils/logger.ts'
+import type { AvatarUploadResponse } from '#server/types/profile'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<AvatarUploadResponse> => {
   const session = await requireUserSession(event)
   const targetUserId = getRouterParam(event, 'id')
 
@@ -15,7 +16,6 @@ export default defineEventHandler(async (event) => {
   const userIdNum = Number(targetUserId)
   const log = logger.withTag('users:avatar')
 
-  // 2. Проверяем права: пользователь может менять только свой аватар, если он не администратор
   const isAdmin = session.user.role_name === 'admin'
   const isSelf = Number(session.user.user_id) === userIdNum
 
@@ -26,7 +26,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 3. Читаем multipart/form-data
   const parts = await readMultipartFormData(event)
   if (!parts || parts.length === 0) {
     throw createError({
@@ -55,7 +54,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Валидация формата
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
   if (!allowedTypes.includes(avatarPart.type)) {
     throw createError({
@@ -64,7 +62,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Валидация размера (до 2 МБ)
   if (avatarPart.data.length > 2 * 1024 * 1024) {
     throw createError({
       statusCode: 400,
@@ -72,7 +69,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 4. Находим пользователя в БД
   const targetUser = await prisma.users.findUnique({
     where: { user_id: userIdNum },
     select: { user_id: true, avatar_path: true }
@@ -85,7 +81,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 5. Загружаем новый файл в MinIO
   let newAvatarPath: string
   try {
     newAvatarPath = await uploadFileToMinio(
@@ -103,7 +98,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 6. Удаляем старый файл из MinIO (если он существовал)
   if (targetUser.avatar_path) {
     try {
       const { client, bucket } = getMinioClient()
@@ -114,7 +108,6 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // 7. Обновляем путь в базе данных (теперь role_name берется напрямую из users)
   const updatedUser = await prisma.users.update({
     where: { user_id: userIdNum },
     data: { avatar_path: newAvatarPath },
@@ -127,12 +120,13 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  // 8. Если пользователь менял аватар себе — обновляем активную сессию
   if (isSelf) {
     await setUserSession(event, {
       user: {
-        ...session.user,
-        avatar_path: updatedUser.avatar_path
+        user_id: updatedUser.user_id,
+        role_name: updatedUser.role_name,
+        user_name: updatedUser.user_name || null,
+        avatar_path: updatedUser.avatar_path || null
       }
     })
   }
