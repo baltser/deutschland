@@ -79,6 +79,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
             cd ~/dnz
             git pull origin master
             docker compose pull
@@ -86,8 +87,11 @@ jobs:
             # 1. Поднимаем базы и сервисы
             docker compose up -d postgres redis minio
 
-            # 2. Напрямую применяем актуальную схему из schema.prisma в базу
-            docker compose run --rm app ./node_modules/.bin/prisma db push --accept-data-loss
+            # Даем базе пару секунд на инициализацию
+            sleep 3
 
-            # 3. Запускаем приложение целиком
+            # 2. Безопасно применяем актуальные миграции в базу данных
+            docker compose run --rm app npx prisma migrate deploy
+
+            # 3. Запускаем приложение целиком со свежим образом
             docker compose up -d --remove-orphans
