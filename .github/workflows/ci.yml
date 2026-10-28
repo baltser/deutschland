@@ -83,15 +83,4 @@ jobs:
             cd ~/dnz
             git pull origin master
             docker compose pull
-
-            # 1. Поднимаем базы и сервисы
-            docker compose up -d postgres redis minio
-
-            # Даем базе пару секунд на инициализацию
-            sleep 3
-
-            # 2. Безопасно применяем актуальные миграции в базу данных
-            docker compose run --rm app npx prisma migrate deploy
-
-            # 3. Запускаем приложение целиком со свежим образом
             docker compose up -d --remove-orphans
