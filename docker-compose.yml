@@ -50,8 +50,9 @@ services:
       ADMIN_NAME: ${ADMIN_NAME}
     networks:
       - dnz-network
-#    command: sh -c "npx prisma db push && node .output/server/index.mjs"
-    command: sh -c "npx prisma migrate deploy && node .output/server/index.mjs"
+    command: sh -c "npx prisma db push && node .output/server/index.mjs"
+#    command: sh -c "npx prisma migrate deploy && node .output/server/index.mjs"
+#    command: sh -c "npx prisma db push --accept-data-loss && node .output/server/index.mjs"
     depends_on:
       postgres:
         condition: service_healthy
