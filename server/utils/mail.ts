@@ -31,9 +31,9 @@ export async function sendVerificationEmail(toEmail: string, token: string, user
   const html = renderEmailTemplate(rawHtml, variables)
 
   // Путь к файлу логотипа в папке public
-  let logoPath = path.resolve(process.cwd(), 'public/images/logo.light.png')
+  let logoPath = path.resolve(process.cwd(), 'public/images/mail-logo.jpeg')
   if (!fs.existsSync(logoPath)) {
-    logoPath = path.resolve(process.cwd(), '.output/public/images/logo.light.png')
+    logoPath = path.resolve(process.cwd(), '.output/public/images/mail-logo.jpeg')
   }
   // Читаем параметры SMTP напрямую из process.env
   const transporter = nodemailer.createTransport({
@@ -55,7 +55,7 @@ export async function sendVerificationEmail(toEmail: string, token: string, user
       // 💡 Прикрепляем логотип для использования через cid:logo@dnz в HTML
       attachments: [
         {
-          filename: 'logo.light.png',
+          filename: 'mail-logo.jpeg',
           path: logoPath,
           cid: 'logo@dnz'
         }
