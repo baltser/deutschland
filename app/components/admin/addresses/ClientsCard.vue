@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { formatPhone } from '~/utils/phone'
-import type {ClientUser} from "~/types/user.ts";
-import type ImportClientsTableModal from "~/components/app/ImportClientsTableModal.vue";
+import type { AddressClientRelation } from '~/types/user'
+import type ImportClientsTableModal from '~/components/app/ImportClientsTableModal.vue'
 
 defineProps<{
   addressId: number | string
-  clients: ClientUser[]
+  clients: AddressClientRelation[]
   clientName: string
   clientPhone: string
   isAdding: boolean
@@ -14,7 +14,7 @@ defineProps<{
 const emit = defineEmits(['update:clientName', 'update:clientPhone', 'add', 'refresh'])
 
 const isImportModalOpen = ref(false)
-const isImportingFile = ref(false) // Стейт загрузки файла для анимации кнопки
+const isImportingFile = ref(false)
 const importModalRef = ref<InstanceType<typeof ImportClientsTableModal> | null>(null)
 
 const columns = [
@@ -22,7 +22,6 @@ const columns = [
   { key: 'client', label: 'Клиент' },
   { key: 'phone', label: 'Телефон' }
 ]
-
 </script>
 
 <template>
@@ -38,11 +37,11 @@ const columns = [
       </div>
 
       <div class="flex items-center gap-2">
+        <!-- Исправлено: берем длину самого массива связей clients -->
         <span class="text-xs px-2.5 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
           {{ clients?.length || 0 }}
         </span>
 
-        <!-- Кнопка с реактивным индикатором загрузки файла -->
         <UButton
           size="xs"
           variant="subtle"
@@ -94,7 +93,7 @@ const columns = [
       <AppBaseTable
         :data="clients"
         :columns="columns"
-        row-key="user.user_id"
+        row-key="user_id"
         empty-text="К этому адресу пока не привязано ни одного клиента."
       >
         <template #index="{ index }">
@@ -106,22 +105,22 @@ const columns = [
         <template #client="{ row }">
           <div class="font-medium text-neutral-900 dark:text-white flex items-center gap-3">
             <div class="w-7 h-7 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center font-semibold text-xs overflow-hidden shrink-0">
-              <img v-if="row?.avatar_path" :src="`/api/files/${row.avatar_path}`" class="w-full h-full object-cover">
-              <span v-else>{{ (row?.user_name?.[0] || 'К').toUpperCase() }}</span>
+              <img v-if="row.user?.avatar_path" :src="`/api/files/${row.user.avatar_path}`" class="w-full h-full object-cover">
+              <span v-else>{{ (row.user?.user_name?.[0] || 'К').toUpperCase() }}</span>
             </div>
-            <span>{{ row?.user_name || 'Без имени' }}</span>
+            <span>{{ row.user?.user_name || 'Без имени' }}</span>
           </div>
         </template>
 
         <template #phone="{ row }">
           <span class="text-neutral-600 dark:text-neutral-400 font-mono text-xs">
-            {{ formatPhone(row?.phone) }}
+            {{ formatPhone(row.user?.phone) }}
           </span>
         </template>
       </AppBaseTable>
     </div>
 
-    <!-- Модальное окно с привязкой стейта загрузки через v-model:uploading -->
+    <!-- Модальное окно -->
     <AppImportClientsTableModal
       ref="importModalRef"
       v-model="isImportModalOpen"

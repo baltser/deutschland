@@ -42,3 +42,9 @@ export interface ClientUser {
   activated_at: string | Date | null
   addresses?: ClientAddressRelation[]
 }
+
+export interface AddressClientRelation {
+  address_id: number
+  user_id: number
+  user: ClientUser
+}
