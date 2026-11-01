@@ -3,8 +3,9 @@ import { ensureBucket } from '~~/server/utils/minio'
 import { logger } from '~~/server/utils/logger'
 import { ensureDefaultEmailTemplate } from "#server/utils/emailTemplates.ts"
 import { ensureDefaultAdminUser } from "#server/utils/adminUser.ts"
+import { closeAllBullMQ } from "#server/utils/bullmq.ts" // Импортируем общий менеджер
 
-export default defineNitroPlugin(async () => {
+export default defineNitroPlugin(async (nitroApp) => {
   const log = logger.withTag('startup')
   log.success('🚀 Запуск сервера... Проверяем критические сервисы:')
 
@@ -53,6 +54,11 @@ export default defineNitroPlugin(async () => {
     log.error('❌ Критическая ошибка: Не удалось подключиться к MinIO.', err)
     throw new Error('Не удалось выполнить действие', { cause: err });
   }
+
+  // Регистрация мягкого завершения работы ВСЕХ воркеров BullMQ при остановке сервера
+  nitroApp.hooks.hook('close', async () => {
+    await closeAllBullMQ()
+  })
 
   log.success('🎉 Все внешние сервисы запущены и готовы к работе!')
 })

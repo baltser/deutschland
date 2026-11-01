@@ -9,7 +9,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker&labelColor=020420)](https://www.docker.com)
 [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI%2FCD-2088FF?logo=githubactions&labelColor=020420)](https://github.com/features/actions)
 
-Современное экосистемное веб-приложение на базе **Nuxt 4** с модульной **доменной архитектурой**. Проект включает безопасную сессионную аутентификацию, Flash-call подтверждение через **uCaller**, гибкую ролевую модель (`admin`, `installer`, `manager`, `client`), управление объектами/устройствами, интеграцию с MinIO и автоматизированный CI/CD деплой.
+Современное экосистемное веб-приложение на базе **Nuxt 4** с модульной **доменной архитектурой**. Проект включает безопасную сессионную аутентификацию, Flash-call подтверждение через **uCaller**, фоновую обработку задач через **BullMQ**, гибкую ролевую модель (`admin`, `installer`, `manager`, `client`), управление объектами/устройствами, интеграцию с MinIO и автоматизированный CI/CD деплой.
 
 ---
 
@@ -20,9 +20,10 @@
 - **Управление состоянием:** Pinia (разделение по доменам: `auth`, `admin`, `client`, `installer`, `profile`).
 - **Аутентификация & Верификация:** `nuxt-auth-utils` + **uCaller.ru** (Flash-call) + Nodemailer (Email verification).
 - **Бэкенд (Nitro Server):** Доменные API-эндпоинты Nuxt (`server/api/`) с плагином автоматического сидирования при старте.
+- **Фоновые задачи & Очереди:** **BullMQ** (очереди писем с автоматическими повторами и обработка асинхронных задач).
 - **База данных:** PostgreSQL 16 + Prisma ORM (модели: `users`, `addresses`, `clients_x_addresses`, `devices`, `email_templates`).
 - **S3 Хранилище:** MinIO (аватары пользователей, медиафайлы).
-- **Кэш & Токены:** Redis.
+- **Кэш, Токены & Очереди:** Redis.
 
 ### **DevOps & CI/CD**
 - **Контейнеризация:** Docker & Docker Compose (изолированная среда PostgreSQL, MinIO, Redis, App).
@@ -35,7 +36,7 @@
 Проект масштабирован по **Domain-Driven** принципу: каждая бизнес-сущность объединяет свои компоненты, сторы, композисы, типы и API-эндпоинты.
 
 ```text
-deutschland/
+dnz/
 ├── app/                        # Клиентская часть (Nuxt Client)
 │   ├── components/             # UI-компоненты по доменам
 │   │   ├── admin/              # Компоненты админ-панели (addresses/, users/)
@@ -69,9 +70,10 @@ deutschland/
 │   │   ├── health/             # Мониторинг сервисов (minio.get.ts)
 │   │   ├── installer/          # API для монтажников (devices)
 │   │   └── profile/            # Управление профилем и загрузка аватара
-│   ├── plugins/                # Инициализатор приложения (startup.ts — проверка БД, Redis, MinIO, seed admin)
+│   ├── plugins/                # Инициализатор приложения (startup.ts — проверка БД, Redis, MinIO, BullMQ close hook)
+│   ├── queues/                 # Очереди и воркеры фоновых задач BullMQ (email.queue.ts)
 │   ├── types/                  # Server-side TypeScript типы
-│   └── utils/                  # Серверные синглтоны (prisma, minio, redis, logger, mail, phone, adminUser)
+│   └── utils/                  # Серверные синглтоны (prisma, minio, redis, bullmq, logger, mail, phone, adminUser)
 │
 ├── prisma/                     # Схема базы данных (schema.prisma)
 ├── docs/                       # Техническая документация

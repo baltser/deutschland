@@ -4,6 +4,7 @@ allowBuilds:
   '@prisma/engines': true
   '@tailwindcss/oxide': false
   esbuild: false
+  msgpackr-extract: false
   prisma: true
   unrs-resolver: false
   vue-demi: false
