@@ -99,6 +99,39 @@ export const useAdminAddressesStore = defineStore('adminAddresses', () => {
     }
   }
 
+  // 5. Массовый импорт клиентов к адресу
+  async function importClients(addressId: string | number, clients: Array<{ name: string; phone: string }>) {
+    loading.value = true
+    try {
+      const data = await $fetch<{ success: boolean; message: string; count: number }>(
+        `/api/admin/addresses/${addressId}/import-clients`,
+        {
+          method: 'POST',
+          body: { clients }
+        }
+      )
+
+      toast.add({
+        title: 'Успешно',
+        description: data.message || 'Клиенты успешно импортированы',
+        color: 'success'
+      })
+
+      // Обновляем информацию по текущему адресу, чтобы таблица на странице сразу обновилась
+      await fetchAddressById(addressId)
+      return true
+    } catch (err: unknown) {
+      toast.add({
+        title: 'Ошибка импорта',
+        description: getErrorMessage(err, 'Не удалось импортировать клиентов'),
+        color: 'error'
+      })
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     addresses,
     loading,
@@ -108,5 +141,6 @@ export const useAdminAddressesStore = defineStore('adminAddresses', () => {
     createAddress,
     fetchAddressById,
     addClientToAddress,
+    importClients
   }
 })

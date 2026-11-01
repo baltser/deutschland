@@ -104,7 +104,7 @@
 
 
 
-### 6. `useAdminUsersStore` (`admin/staff.ts` & `admin/users.ts`)
+### 6. `useAdminUsersStore` (`admin/)
 
 Управление персоналом и клиентами в административной панели.
 

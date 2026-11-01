@@ -1,4 +1,4 @@
-import { useAdminUsersStore } from '~/stores/admin/users'
+import { useAdminUserMutationsStore } from '~/stores/admin/users/mutations.ts'
 import type {StaffUser, ClientUser, ClientAddressRelation} from '~/types/user'
 
 export type UserEditTarget = (StaffUser | ClientUser) & {
@@ -6,7 +6,7 @@ export type UserEditTarget = (StaffUser | ClientUser) & {
   addresses?: ClientAddressRelation[]
 }
 export function useAdminUserEdit() {
-  const store = useAdminUsersStore()
+  const store = useAdminUserMutationsStore()
 
   const isEditModalOpen = ref(false)
   const selectedUser = ref<UserEditTarget | null>(null)

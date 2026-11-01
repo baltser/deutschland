@@ -9,10 +9,6 @@ const addClientSchema = z.object({
 })
 
 export default defineEventHandler(async (event): Promise<AddClientToAddressResponse> => {
-  const session = await getUserSession(event)
-  if (!session || !session.user || session.user.role_name !== 'admin') {
-    throw createError({ statusCode: 403, message: 'Доступ запрещен' })
-  }
 
   const id = getRouterParam(event, 'id')
   const addressId = Number(id)

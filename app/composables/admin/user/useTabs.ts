@@ -1,9 +1,12 @@
-import { useAdminUsersStore } from '~/stores/admin/users'
+import { useAdminStaffStore } from '~/stores/admin/users/staff'
+import { useAdminClientsStore } from '~/stores/admin/users/clients'
 
 export type UserRoleTab = 'admin' | 'installer' | 'client'
 
 export function useAdminUserTabs() {
-  const store = useAdminUsersStore()
+  const staffStore = useAdminStaffStore()
+  const clientsStore = useAdminClientsStore()
+
   const selectedTab = ref<UserRoleTab>('admin')
   const searchQuery = ref('')
 
@@ -13,8 +16,16 @@ export function useAdminUserTabs() {
     { label: 'Клиенты', value: 'client' },
   ] as const
 
+  // Синхронизация поиска с бэкендом для клиентов
+  watch(searchQuery, (val) => {
+    if (selectedTab.value === 'client') {
+      clientsStore.setSearch(val.trim())
+    }
+  })
+
+  // Фильтрация персонала на клиенте
   const filteredStaff = computed(() => {
-    let list = store.staffList.filter(u => u.role_name === selectedTab.value)
+    let list = staffStore.staffList.filter(u => u.role_name === selectedTab.value)
 
     if (searchQuery.value.trim()) {
       const query = searchQuery.value.toLowerCase()
@@ -27,22 +38,11 @@ export function useAdminUserTabs() {
     return list
   })
 
-  const filteredClients = computed(() => {
-    let list = store.clientsList
-
-    if (searchQuery.value.trim()) {
-      const query = searchQuery.value.toLowerCase()
-      list = list.filter(c =>
-        (c.user_name && c.user_name.toLowerCase().includes(query)) ||
-        (c.phone && c.phone.toLowerCase().includes(query)) ||
-        (c.email && c.email.toLowerCase().includes(query))
-      )
-    }
-    return list
-  })
+  const filteredClients = computed(() => clientsStore.list)
 
   return {
-    store,
+    staffStore,
+    clientsStore,
     selectedTab,
     searchQuery,
     roleTabs,

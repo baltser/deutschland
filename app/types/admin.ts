@@ -6,13 +6,25 @@ import type { EmailTemplate } from './template'
 
 // --- ОТВЕТЫ СПИСКОВ ДЛЯ АДМИНА ---
 
+export interface PaginationMeta {
+  total: number
+  totalPages: number
+  page?: number
+  limit?: number
+}
+
+// --- ОТВЕТЫ СПИСКОВ ДЛЯ АДМИНА ---
+
 export interface StaffListResponse {
   success: boolean
   users: StaffUser[]
+  // Если у списка сотрудников тоже появится пагинация, сюда можно легко добавить:
+  // pagination?: PaginationMeta
 }
 
 export interface ClientsListResponse {
   success: boolean
+  pagination: PaginationMeta
   clients: ClientUser[]
 }
 

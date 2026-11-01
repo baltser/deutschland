@@ -35,7 +35,7 @@ const triggerFileInput = () => {
   fileInputRef.value?.click()
 }
 
-// Очистка объекта URL в памяти браузера для предотвращения утечек памяти
+// Очистка объекта URL в памяти браузера
 const revokePreview = () => {
   if (localPreviewUrl.value) {
     URL.revokeObjectURL(localPreviewUrl.value)
@@ -83,14 +83,14 @@ const handleFileSelect = async (event: Event) => {
   revokePreview()
   localPreviewUrl.value = URL.createObjectURL(file)
 
-  // Режим отложенной загрузки (передаем файл наверх в форму модального окна)
+  // Режим отложенной загрузки (передаем файл наверх в форму)
   if (!props.immediateUpload) {
     emit('select-file', file)
     if (fileInputRef.value) fileInputRef.value.value = ''
     return
   }
 
-  // Режим мгновенной загрузки (для страниц профиля и т.д.)
+  // Режим мгновенной загрузки через твой готовый эндпоинт
   uploading.value = true
   try {
     const formData = new FormData()
@@ -151,7 +151,7 @@ onUnmounted(() => {
         >
         <UIcon
           v-else
-          name="i-heroicons-user"
+          name="i-lucide-user"
           class="w-8 h-8 text-neutral-400 dark:text-neutral-500"
         />
       </div>
@@ -163,12 +163,12 @@ onUnmounted(() => {
       >
         <UIcon
           v-if="!uploading"
-          name="i-heroicons-camera"
+          name="i-lucide-camera"
           class="w-6 h-6 text-white"
         />
         <UIcon
           v-else
-          name="i-heroicons-arrow-path"
+          name="i-lucide-loader-2"
           class="w-6 h-6 text-white animate-spin"
         />
       </div>
@@ -187,7 +187,7 @@ onUnmounted(() => {
       >
       <UIcon
         v-else
-        name="i-heroicons-user"
+        name="i-lucide-user"
         class="w-8 h-8 text-neutral-400 dark:text-neutral-500"
       />
     </div>

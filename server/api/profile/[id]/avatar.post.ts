@@ -135,6 +135,6 @@ export default defineEventHandler(async (event): Promise<AvatarUploadResponse> =
 
   return {
     success: true,
-    avatarUrl: updatedUser.avatar_path ? `/api/files/${updatedUser.avatar_path}` : null
+    avatarUrl: updatedUser.avatar_path
   }
 })

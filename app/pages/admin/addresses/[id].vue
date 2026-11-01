@@ -1,40 +1,45 @@
 <script setup lang="ts">
+import { useAdminAddressesStore } from '~/stores/admin/addresses'
+
 definePageMeta({ layout: 'admin' })
 
 const route = useRoute()
 const addressId = (Array.isArray(route.params.id) ? route.params.id[0] : route.params.id) || ''
 
-// 1. Загрузка данных адреса
-const { data: addressData, pending, error, refresh } = await useFetch(`/api/admin/addresses/${addressId}`)
-const address = computed(() => addressData.value?.address)
+const addressStore = useAdminAddressesStore()
+const { currentAddress: address, loading: pending, error } = storeToRefs(addressStore)
 
-// 2. Логика управления клиентами (перенесена прямо на страницу)
+// Локальный стейт формы добавления клиента
 const clientPhone = ref('')
 const clientName = ref('')
 const isAddingClient = ref(false)
 
-function handlePhoneInput(val: string) {
-  clientPhone.value = val
+// Загружаем данные при монтировании
+onMounted(async () => {
+  await addressStore.fetchAddressById(addressId)
+})
+
+// Функция обновления (передаем в дочерние компоненты)
+const refresh = async () => {
+  await addressStore.fetchAddressById(addressId)
 }
 
+// Добавление клиента через стор
 async function handleAddClient() {
   if (!clientPhone.value || clientPhone.value.length < 10) return
 
   isAddingClient.value = true
   try {
-    await $fetch(`/api/admin/addresses/${addressId}/clients`, {
-      method: 'POST',
-      body: {
-        phone: clientPhone.value,
-        user_name: clientName.value.trim() || undefined
-      }
+    await addressStore.addClientToAddress(addressId, {
+      phone: clientPhone.value,
+      user_name: clientName.value.trim() || undefined
     })
 
     clientPhone.value = ''
     clientName.value = ''
-    await refresh()
-  } catch (err: unknown) {
-    console.error('Ошибка добавления клиента к адресу:', err)
+  } catch  {
+    // Ошибка уже обработана и показана через toast в сторе
+    console.log("Ошибка уже обработана и показана через toast в сторе")
   } finally {
     isAddingClient.value = false
   }
@@ -64,17 +69,17 @@ useSeoMeta({
           <span class="text-xs text-neutral-400">/ Объект #{{ addressId }}</span>
         </div>
         <h1 class="text-2xl font-bold text-neutral-900 dark:text-white">
-          {{ pending ? 'Загрузка адреса...' : address?.address_name }}
+          {{ pending && !address ? 'Загрузка адреса...' : address?.address_name }}
         </h1>
       </div>
     </div>
 
     <!-- Ошибка / Загрузка -->
     <div v-if="error" class="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-2xl p-6 text-red-600 dark:text-red-400 text-sm">
-      Не удалось загрузить данные адреса. Возможно, он был удален.
+      {{ error }}
     </div>
 
-    <div v-else-if="pending" class="py-16 text-center text-neutral-400 text-sm">
+    <div v-else-if="pending && !address" class="py-16 text-center text-neutral-400 text-sm">
       Загрузка информации об объекте...
     </div>
 
@@ -84,15 +89,17 @@ useSeoMeta({
         <AdminAddressesClientsCard
           v-model:client-name="clientName"
           v-model:client-phone="clientPhone"
+          :address-id="addressId"
           :clients="address?.clients || []"
           :is-adding="isAddingClient"
-          @phone-input="handlePhoneInput"
+          @phone-input="(val: string) => clientPhone = val"
           @add="handleAddClient"
+          @refresh="refresh"
         />
 
         <!-- Карточка оборудования -->
         <AdminAddressesDevicesPlaceholder
-          :devices="address?.devices || []"
+          :devices="(address?.devices || []) as any[]"
           :address-id="Number(addressId)"
           @refresh="refresh"
         />

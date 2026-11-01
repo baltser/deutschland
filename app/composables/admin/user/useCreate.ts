@@ -1,7 +1,7 @@
-import { useAdminUsersStore } from '~/stores/admin/users'
+import { useAdminStaffStore } from '~/stores/admin/users/staff.ts'
 
 export function useAdminUserCreate() {
-  const store = useAdminUsersStore()
+  const store = useAdminStaffStore()
 
   const isAddModalOpen = ref(false)
   const newPhone = ref('')

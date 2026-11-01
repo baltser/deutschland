@@ -2,24 +2,27 @@
 import ClientAddressList from '~/components/client/address/List.vue'
 import UserAvatar from '~/components/user/UserAvatar.vue'
 import type {StaffUser, ClientUser, ClientAddressRelation} from '~/types/user'
+import { useAdminUserMutationsStore } from "~/stores/admin/users/mutations"
 
 export type UserEditTarget = (StaffUser | ClientUser) & {
-  role?: { role_name: string }
+  role_name?: string
   addresses?: ClientAddressRelation[]
 }
 
 const props = defineProps<{
   modelValue: boolean
   user: UserEditTarget | null
-  isSaving: boolean
+  // isSaving можно сделать опциональным пропсом, если родителю нужно об этом знать
+  isSaving?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  save: [payload: { user_name: string; role_name: string; avatarFile?: File | null }]
 }>()
 
 // --- ЛОГИКА ФОРМЫ И СОСТОЯНИЯ ---
+const mutationsStore = useAdminUserMutationsStore()
+const localIsSaving = ref(false)
 
 const form = reactive({
   user_name: '',
@@ -32,7 +35,9 @@ const form = reactive({
 // Определяем исходную роль пользователя
 const initialRole = computed(() => {
   if (!props.user) return 'client'
-  const raw = props.user.role?.role_name || ('addresses' in props.user ? 'client' : 'installer')
+
+  // Роль теперь лежит прямо в поле role_name (или определяем клиента по адресам)
+  const raw = props.user.role_name || ('addresses' in props.user ? 'client' : 'installer')
   return raw.toLowerCase().trim()
 })
 
@@ -108,15 +113,24 @@ const isOpen = computed({
   set: (val) => emit('update:modelValue', val)
 })
 
-// Сохранение
-function handleSave() {
-  if (!hasChanges.value || props.isSaving) return
+// Сохранение через стор мутаций
+async function handleSave() {
+  if (!props.user || !hasChanges.value || localIsSaving.value) return
+  localIsSaving.value = true
 
-  emit('save', {
-    user_name: form.user_name.trim(),
-    role_name: form.role_name,
-    avatarFile: form.newAvatarFile
-  })
+  try {
+    const success = await mutationsStore.updateUser(props.user.user_id, {
+      user_name: form.user_name.trim(),
+      role_name: form.role_name,
+      avatarFile: form.newAvatarFile
+    })
+
+    if (success) {
+      isOpen.value = false // Закрываем модалку при успехе
+    }
+  } finally {
+    localIsSaving.value = false
+  }
 }
 
 onUnmounted(() => {

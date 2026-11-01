@@ -10,8 +10,8 @@ useSeoMeta({
   description: 'Список сотрудников, монтажников и клиентов с адресами'
 })
 
-// Подключаем разделенные логические модули
-const { store, selectedTab, searchQuery, roleTabs, filteredStaff, filteredClients } = useAdminUserTabs()
+// Подключаем разделенные логические модули и модульные сторы
+const { staffStore, clientsStore, selectedTab, searchQuery, roleTabs, filteredStaff, filteredClients } = useAdminUserTabs()
 const { isEditModalOpen, selectedUser, isSaving, openEditModal, handleSaveUser } = useAdminUserEdit()
 const { isAddModalOpen, newPhone, newUserName, newRole, isCreating, openAddModal, handleCreateStaff } = useAdminUserCreate()
 </script>
@@ -67,19 +67,34 @@ const { isAddModalOpen, newPhone, newUserName, newRole, isCreating, openAddModal
     <AdminUsersStaffTable
       v-if="selectedTab !== 'client'"
       :users="filteredStaff"
-      :loading="store.staffPending"
-      :error="store.staffError"
+      :loading="staffStore.staffPending"
+      :error="staffStore.staffError"
       @select="openEditModal"
     />
 
-    <!-- Таблица клиентов -->
-    <AdminUsersClientsTable
-      v-else
-      :clients="filteredClients"
-      :loading="store.clientsPending"
-      :error="store.clientsError"
-      @select="openEditModal"
-    />
+    <!-- Таблица клиентов с пагинацией по стандарту Nuxt UI v3 -->
+    <div v-else class="space-y-4">
+      <AdminUsersClientsTable
+        v-model="clientsStore.addressFilter"
+        :clients="filteredClients"
+        :loading="clientsStore.pending"
+        :error="clientsStore.error"
+        @update:model-value="(val) => clientsStore.setAddressFilter(val)"
+        @select="openEditModal"
+      />
+
+      <!-- Пагинация по стандарту Nuxt UI -->
+      <div v-if="clientsStore.totalPages > 1" class="flex justify-center pt-2">
+        <UPagination
+          v-model:page="clientsStore.page"
+          :total="clientsStore.total"
+          :items-per-page="clientsStore.limit"
+          active-color="primary"
+          active-variant="subtle"
+          @update:page="(page) => clientsStore.setPage(page)"
+        />
+      </div>
+    </div>
 
     <!-- Модалка редактирования -->
     <AdminUsersRoleEditModal
