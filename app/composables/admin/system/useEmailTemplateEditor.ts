@@ -51,7 +51,7 @@ export function useEmailTemplateEditor() {
     }
 
     // Подменяем cid на публичный путь для превью
-    html = html.replace(/src="cid:logo@dnz"/g, 'src="/images/logo.light.png"')
+    html = html.replace(/src="cid:logo@dnz"/g, 'src="/images/mail-logo.jpeg"')
 
     return html
   })
