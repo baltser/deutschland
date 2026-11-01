@@ -85,15 +85,12 @@ useSeoMeta({
 
     <template v-else>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Карточка клиентов -->
         <AdminAddressesClientsCard
           v-model:client-name="clientName"
           v-model:client-phone="clientPhone"
           :address-id="addressId"
-          :clients="(address?.clients || []).map((c: any) => ({
-            address_id: Number(addressId),
-            user_id: c.user_id,
-            user: c
-          }))"
+          :clients="address?.clients || []"
           :is-adding="isAddingClient"
           @add="handleAddClient"
           @refresh="refresh"
