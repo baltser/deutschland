@@ -3,7 +3,7 @@ import { formatPhone } from '~/utils/phone'
 import type {ClientUser} from "~/types/user.ts";
 import type ImportClientsTableModal from "~/components/app/ImportClientsTableModal.vue";
 
-const props = defineProps<{
+defineProps<{
   addressId: number | string
   clients: ClientUser[]
   clientName: string
@@ -106,16 +106,16 @@ const columns = [
         <template #client="{ row }">
           <div class="font-medium text-neutral-900 dark:text-white flex items-center gap-3">
             <div class="w-7 h-7 rounded-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center font-semibold text-xs overflow-hidden shrink-0">
-              <img v-if="row.user?.avatar_path" :src="`/api/files/${row.user.avatar_path}`" class="w-full h-full object-cover">
-              <span v-else>{{ (row.user?.user_name?.[0] || 'К').toUpperCase() }}</span>
+              <img v-if="row?.avatar_path" :src="`/api/files/${row.avatar_path}`" class="w-full h-full object-cover">
+              <span v-else>{{ (row?.user_name?.[0] || 'К').toUpperCase() }}</span>
             </div>
-            <span>{{ row.user?.user_name || 'Без имени' }}</span>
+            <span>{{ row?.user_name || 'Без имени' }}</span>
           </div>
         </template>
 
         <template #phone="{ row }">
           <span class="text-neutral-600 dark:text-neutral-400 font-mono text-xs">
-            {{ formatPhone(row.user?.phone) }}
+            {{ formatPhone(row?.phone) }}
           </span>
         </template>
       </AppBaseTable>
