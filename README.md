@@ -4,12 +4,13 @@
 [![Nuxt UI](https://img.shields.io/badge/Nuxt-UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
 [![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma&labelColor=020420)](https://www.prisma.io)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-4169E1?logo=postgresql&labelColor=020420)](https://www.postgresql.org)
-[![MinIO](https://img.shields.io/badge/MinIO-Storage-C72C48?logo=minio&labelColor=020420)](https://min.io)
+[![BullMQ](https://img.shields.io/badge/BullMQ-Queues-DD3A0A?logo=bullmq&labelColor=020420)](https://bullmq.io)
 [![Redis](https://img.shields.io/badge/Redis-Cache%2FStore-DC382D?logo=redis&labelColor=020420)](https://redis.io)
+[![MinIO](https://img.shields.io/badge/MinIO-Storage-C72C48?logo=minio&labelColor=020420)](https://min.io)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker&labelColor=020420)](https://www.docker.com)
 [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI%2FCD-2088FF?logo=githubactions&labelColor=020420)](https://github.com/features/actions)
 
-Современное экосистемное веб-приложение на базе **Nuxt 4** с модульной **доменной архитектурой**. Проект включает безопасную сессионную аутентификацию, Flash-call подтверждение через **uCaller**, фоновую обработку задач через **BullMQ**, гибкую ролевую модель (`admin`, `installer`, `manager`, `client`), управление объектами/устройствами, интеграцию с MinIO и автоматизированный CI/CD деплой.
+Современное экосистемное веб-приложение на базе **Nuxt 4** с модульной **доменной архитектурой**. Проект включает безопасную сессионную аутентификацию, Flash-call подтверждение через **uCaller**, асинхронную рассылку email-уведомлений и TTL-управление автопропусками через **BullMQ**, интеграцию с ANPR-камерами, ролевой доступ (`admin`, `installer`, `manager`, `client`) и автоматизированный CI/CD деплой.
 
 ---
 
@@ -18,9 +19,10 @@
 ### **Core Stack**
 - **Фронтенд:** Nuxt 4, Vue 3 (Composition API), Tailwind CSS, Nuxt UI.
 - **Управление состоянием:** Pinia (разделение по доменам: `auth`, `admin`, `client`, `installer`, `profile`).
-- **Аутентификация & Верификация:** `nuxt-auth-utils` + **uCaller.ru** (Flash-call) + Nodemailer (Email verification).
+- **Аутентификация & Верификация:** `nuxt-auth-utils` + **uCaller.ru** (Flash-call) + Nodemailer.
 - **Бэкенд (Nitro Server):** Доменные API-эндпоинты Nuxt (`server/api/`) с плагином автоматического сидирования при старте.
-- **Фоновые задачи & Очереди:** **BullMQ** (очереди писем с автоматическими повторами и обработка асинхронных задач).
+- **Фоновые задачи & Очереди:** **BullMQ** (управление TTL-пропусками в `number.queue.ts` и асинхронная отправка писем с повторами в `email.queue.ts`).
+- **Логирование:** **Pino** (структурированные JSON-логи с ротацией в файлы для AUDIT, WARN и ERROR).
 - **База данных:** PostgreSQL 16 + Prisma ORM (модели: `users`, `addresses`, `clients_x_addresses`, `devices`, `email_templates`).
 - **S3 Хранилище:** MinIO (аватары пользователей, медиафайлы).
 - **Кэш, Токены & Очереди:** Redis.
@@ -38,45 +40,32 @@
 ```text
 dnz/
 ├── app/                        # Клиентская часть (Nuxt Client)
-│   ├── components/             # UI-компоненты по доменам
-│   │   ├── admin/              # Компоненты админ-панели (addresses/, users/)
-│   │   ├── app/                # Общие системные элементы (Header, Sidebar, Inputs)
-│   │   ├── auth/               # Авторизация (Card, AvatarUpload)
-│   │   ├── client/             # Домен клиентов (address/)
-│   │   └── user/               # Домен пользователя (UserAvatar, ProfileBadge)
+│   ├── components/             # UI-компоненты по доменам (admin/, app/, auth/, client/, user/)
 │   ├── composables/            # Бизнес-логика и композисы по доменам
-│   │   ├── admin/              # Логика администратора (address/, user/, system/)
-│   │   ├── auth/               # Формы аутентификации
-│   │   ├── installer/          # Логика инсталлятора / монтажника
-│   │   └── profile/            # Управление профилем
 │   ├── layouts/                # Доменные макеты (admin, auth, client, installer, profile, default)
 │   ├── middleware/             # Глобальный ролевой редирект (role-redirect.global.ts)
 │   ├── pages/                  # Файловый роутинг по доменам
-│   │   ├── admin/              # Панель управления (addresses/, users/, system/)
-│   │   ├── auth/               # Страницы входа и регистрации (login, register)
-│   │   ├── client/             # Личный кабинет клиента
-│   │   ├── installer/          # Кабинет монтажника / инсталлятора
-│   │   └── profile/            # Профиль пользователя
-│   ├── stores/                 # Доменные Pinia-сторы (admin, auth, client, installer, profile)
-│   ├── types/                  # TypeScript-типы клиента (admin, address, device, user, auth)
-│   └── utils/                  # Форматирование и хелперы (phone, roles, logout)
+│   ├── stores/                 # Доменные Pinia-сторы
+│   ├── types/                  # TypeScript-типы клиента
+│   └── utils/                  # Форматирование, валидация госномеров и хелперы
 │
 ├── server/                     # Серверная часть (Nitro Engine)
 │   ├── api/                    # API-эндпоинты по доменам
 │   │   ├── admin/              # Админ API (addresses/, users/, email-templates/, staff, clients)
 │   │   ├── auth/               # Авторизация, сессии, верификация почты и сброс паролей
-│   │   ├── client/             # Клиентский API (addresses)
+│   │   ├── client/             # Клиентский API (addresses, camera-anpr/batch)
 │   │   ├── files/              # Проксирование и выдача файлов из MinIO
 │   │   ├── health/             # Мониторинг сервисов (minio.get.ts)
 │   │   ├── installer/          # API для монтажников (devices)
 │   │   └── profile/            # Управление профилем и загрузка аватара
-│   ├── plugins/                # Инициализатор приложения (startup.ts — проверка БД, Redis, MinIO, BullMQ close hook)
-│   ├── queues/                 # Очереди и воркеры фоновых задач BullMQ (email.queue.ts)
+│   ├── plugins/                # Инициализатор приложения (startup.ts — БД, Redis, MinIO, BullMQ hook)
+│   ├── queues/                 # Очереди фоновых задач BullMQ (number.queue.ts, email.queue.ts)
+│   ├── services/               # Сервисы логирования (Pino: car-logger, client-logger)
 │   ├── types/                  # Server-side TypeScript типы
-│   └── utils/                  # Серверные синглтоны (prisma, minio, redis, bullmq, logger, mail, phone, adminUser)
+│   └── utils/                  # Серверные синглтоны (prisma, minio, redis, bullmq, mail, device-api)
 │
 ├── prisma/                     # Схема базы данных (schema.prisma)
-├── docs/                       # Техническая документация
+├── docs/                       # Подробная техническая документация
 └── docker-compose.yml          # Инфраструктурные сервисы
 ```
 ## ⚙️ Быстрый старт (Локальная разработка)
@@ -88,50 +77,7 @@ pnpm install
 ```
 ### 2. Настройка окружения (.env)
 
-Создайте файл .env в корне проекта на основе примеров:
-Code-Snippet
-```env
-NUXT_SESSION_PASSWORD=********
-DATABASE_URL="postgresql://xxxx:******@postgres:5432/dnz_db?schema=public"
-
-NODE_ENV=production
-
-POSTGRES_USER=xxxxx
-POSTGRES_PASSWORD=xxxxx
-POSTGRES_DB=dnz_db
-
-REDIS_HOST=redis
-REDIS_PORT=6379
-
-# MinIO Config
-MINIO_ROOT_USER=xxxxxx
-MINIO_ROOT_PASSWORD=xxxxx
-NUXT_MINIO_ENDPOINT=minio
-NUXT_MINIO_PORT=9000
-NUXT_MINIO_USE_SSL=false
-NUXT_MINIO_ACCESS_KEY=*******
-NUXT_MINIO_SECRET_KEY=******
-NUXT_MINIO_BUCKET=dnz-uploads
-
-# SMTP (Mail.ru)
-SMTP_HOST=smtp.mail.ru
-SMTP_PORT=465
-SMTP_SECURE=true
-SMTP_USER=****@mail.ru
-SMTP_PASSWORD=*********
-SMTP_FROM=*******
-
-# Публичный URL приложения
-NUXT_PUBLIC_APP_URL=http://localhost:3000
-
-# uCaller Flash-Call Config
-UCALLER_SECRET_KEY=6LCt************************
-UCALLER_SERVICE_ID=****80
-
-# System Defaults
-ADMIN_PHONE="79***"
-ADMIN_NAME="Alexandr"
-```
+Создайте файл `.env` в корне проекта. Полный список конфигурационных переменных и их описания доступны в [руководстве по настройке базы данных и сервисов](./docs/database.md).
 ### 3. Запуск инфраструктуры в Docker
 ```Bash
 docker compose up -d postgres minio redis
