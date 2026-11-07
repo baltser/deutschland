@@ -1,8 +1,9 @@
 import { useProfileStore } from '~/stores/profile'
+import { useToastNotifications } from '~/composables/useToast'
 
 export function useProfile() {
   const store = useProfileStore()
-  const toast = useToast()
+  const { showSuccess, showError, showWarning } = useToastNotifications()
 
   const state = reactive({
     name: '',
@@ -44,14 +45,10 @@ export function useProfile() {
     return nameChanged || emailChanged || passwordFilled
   })
 
-  const notify = (title: string, description: string, color: 'success' | 'error' | 'warning', icon?: string) => {
-    toast.add({ title, description, color, icon })
-  }
-
   // Сохранение профиля
   async function saveProfile() {
     if (passwordError.value) {
-      notify('Ошибка', 'Пароли не совпадают', 'error')
+      showError('Ошибка', 'Пароли не совпадают')
       return false
     }
 
@@ -76,20 +73,20 @@ export function useProfile() {
       }
 
       if (Object.keys(payload).length === 0) {
-        notify('Информация', 'Нет изменений для сохранения', 'warning')
+        showWarning('Информация', 'Нет изменений для сохранения')
         return true
       }
 
       await store.updateProfile(payload)
 
-      notify('Успешно', 'Профиль обновлен', 'success')
+      showSuccess('Успешно', 'Профиль обновлен')
       state.password = ''
       state.confirmPassword = ''
       showPasswordFields.value = false
       return true
     } catch (err: unknown) {
       const e = err as { data?: { message?: string } }
-      notify('Ошибка', e.data?.message || 'Не удалось обновить профиль', 'error')
+      showError('Ошибка', e.data?.message || 'Не удалось обновить профиль')
       return false
     } finally {
       isLoading.value = false
@@ -114,10 +111,12 @@ export function useProfile() {
         state.email = store.profile.email || ''
       }
 
-      notify('Письмо отправлено', 'Ссылка с подтверждением отправлена на указанный email', 'success', 'i-lucide-mail-check')
+      showSuccess('Письмо отправлено', 'Ссылка с подтверждением отправлена на указанный email', {
+        icon: 'i-lucide-mail-check'
+      })
     } catch (err: unknown) {
       const e = err as { data?: { message?: string } }
-      notify('Ошибка', e.data?.message || 'Не удалось отправить письмо', 'error')
+      showError('Ошибка', e.data?.message || 'Не удалось отправить письмо')
     } finally {
       isSendingVerification.value = false
     }
@@ -125,7 +124,7 @@ export function useProfile() {
 
   async function handleAvatarUpdated() {
     await store.fetchProfile(true)
-    notify('Успешно', 'Аватар обновлен', 'success')
+    showSuccess('Успешно', 'Аватар обновлен')
   }
 
   return {

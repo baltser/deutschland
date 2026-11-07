@@ -10,21 +10,15 @@ export default defineNuxtConfig({
     enabled: true
   },
   fonts: {
-    // Отключаем скачивание или настраиваем поведение при отсутствии интернета в Docker
-    provider: 'local', // или 'none', если шрифты не критичны при сборке
+    provider: 'local',
   },
   css: ['~/assets/css/main.css'],
   routeRules: {
     '/login': { redirect: '/auth/login' },
     '/register': { redirect: '/auth/register' }
   },
-  // routeRules: {
-  //   '/': { prerender: true }
-  // },
   runtimeConfig: {
-
     session: {
-      maxAge: 60 * 60 * 24 * 7,
       cookie: {
         secure: process.env.NODE_ENV === 'production' && process.env.NUXT_SESSION_SECURE === 'true'
       }
@@ -49,20 +43,9 @@ export default defineNuxtConfig({
       pass: process.env.SMTP_PASSWORD,
       from: process.env.SMTP_FROM || process.env.SMTP_FROM_EMAIL || '"Двор на замок" <motokawasaki@mail.ru>',
     },
-    public : {
+    public: {
       appUrl: process.env.NUXT_PUBLIC_APP_URL || 'http://localhost:3000'
-
     },
-},
-
+  },
   compatibilityDate: '2026-06-30'
-
-  // eslint: {
-  //   config: {
-  //     stylistic: {
-  //       commaDangle: 'never',
-  //       braceStyle: '1tbs'
-  //     }
-  //   }
-  // }
 })

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useToastNotifications } from '~/composables/useToast.ts' // Укажи свой путь к композаблу
+
 export interface DeviceItem {
   device_id: number
   device_name: string
@@ -15,7 +17,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['refresh'])
-const toast = useToast()
+const { showSuccess, showError } = useToastNotifications()
 
 // Состояние формы
 const deviceName = ref('')
@@ -28,7 +30,7 @@ const isAdding = ref(false)
 
 async function handleAddDevice() {
   if (!deviceName.value.trim()) {
-    toast.add({ title: 'Ошибка', description: 'Укажите название устройства', color: 'error' })
+    showError('Ошибка', 'Укажите название устройства')
     return
   }
 
@@ -54,20 +56,12 @@ async function handleAddDevice() {
     deviceLogin.value = ''
     devicePassword.value = ''
 
-    toast.add({
-      title: 'Успешно',
-      description: 'Устройство добавлено к объекту',
-      color: 'success'
-    })
+    showSuccess('Успешно', 'Устройство добавлено к объекту')
 
     emit('refresh')
   } catch (err: unknown) {
     const fetchErr = err as { data?: { message?: string } }
-    toast.add({
-      title: 'Ошибка',
-      description: fetchErr.data?.message || 'Не удалось добавить устройство',
-      color: 'error'
-    })
+    showError('Ошибка', fetchErr.data?.message || 'Не удалось добавить устройство')
   } finally {
     isAdding.value = false
   }
@@ -192,7 +186,7 @@ async function handleAddDevice() {
             <p class="text-xs text-neutral-400 mt-0.5">
               <span v-if="device.ip">IP: {{ device.ip }}</span>
               <span v-if="device.port">:{{ device.port }}</span>
-              <span v-if="device.login"> • Логин: {{ device.login }}</span>
+              <span v-if="device.login"> Логин: {{ device.login }}</span>
               <span v-if="!device.ip && !device.port">Параметры не указаны</span>
             </p>
           </div>

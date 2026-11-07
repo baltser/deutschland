@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useForm } from "~/composables/auth/useForm.ts";
-import { getCleanPhone } from "~/utils/phone.ts"; // 💡 Импортируем утилиту очистки телефона
+import { getCleanPhone } from "~/utils/phone.ts";
 
 definePageMeta({ layout: 'auth' })
 
@@ -21,7 +21,7 @@ const {
 } = useForm()
 
 async function onSubmit() {
-  const phone = getCleanPhone(state.phone) // 💡 Передаем текущий телефон для очистки
+  const phone = getCleanPhone(state.phone)
   if (!phone) {
     errorMessage.value = 'Введите номер телефона'
     return

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useToastNotifications } from '~/composables/useToast.ts'
+
 interface Props {
   userId?: string | number
   avatarUrl?: string | null
@@ -20,7 +22,7 @@ const emit = defineEmits<{
   (e: 'select-file', file: File): void
 }>()
 
-const toast = useToast()
+const { showSuccess, showError } = useToastNotifications()
 
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const localPreviewUrl = ref<string>('')
@@ -47,22 +49,14 @@ const revokePreview = () => {
 const validateFile = (file: File): boolean => {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
   if (!allowedTypes.includes(file.type)) {
-    toast.add({
-      title: 'Ошибка формата',
-      description: 'Поддерживаются только форматы JPG, PNG и WEBP',
-      color: 'error'
-    })
+    showError('Ошибка формата', 'Поддерживаются только форматы JPG, PNG и WEBP')
     return false
   }
 
   // Ограничение размера: 2 МБ
   const MAX_SIZE = 2 * 1024 * 1024
   if (file.size > MAX_SIZE) {
-    toast.add({
-      title: 'Файл слишком большой',
-      description: 'Максимальный размер изображения — 2 МБ',
-      color: 'error'
-    })
+    showError('Файл слишком большой', 'Максимальный размер изображения — 2 МБ')
     return false
   }
 
@@ -90,7 +84,7 @@ const handleFileSelect = async (event: Event) => {
     return
   }
 
-  // Режим мгновенной загрузки через твой готовый эндпоинт
+  // Режим мгновенной загрузки через эндпоинт
   uploading.value = true
   try {
     const formData = new FormData()
@@ -101,11 +95,7 @@ const handleFileSelect = async (event: Event) => {
       body: formData
     })
 
-    toast.add({
-      title: 'Успешно',
-      description: 'Аватар обновлен',
-      color: 'success'
-    })
+    showSuccess('Успешно', 'Аватар обновлен')
 
     emit('updated', response.avatarUrl)
   } catch (err: unknown) {
@@ -113,11 +103,7 @@ const handleFileSelect = async (event: Event) => {
     revokePreview()
 
     const fetchError = err as { data?: { message?: string } }
-    toast.add({
-      title: 'Ошибка загрузки',
-      description: fetchError.data?.message || 'Не удалось загрузить аватар на сервер',
-      color: 'error'
-    })
+    showError('Ошибка загрузки', fetchError.data?.message || 'Не удалось загрузить аватар на сервер')
   } finally {
     uploading.value = false
     if (fileInputRef.value) fileInputRef.value.value = ''
