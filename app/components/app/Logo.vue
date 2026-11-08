@@ -1,10 +1,10 @@
 <template>
-  <NuxtLink to="/" class="inline-block">
-    <div class="h-14 flex items-center justify-center">
+  <NuxtLink to="/" class="inline-flex items-center shrink-0">
+    <div class="h-12 w-36 flex items-center justify-start overflow-hidden">
       <img
         :src="currentLogoUrl"
-        class="h-14 w-auto object-contain"
-        alt="DNZ Web"
+        class="h-full w-full object-contain transition-all duration-150"
+        alt="Двор на замок"
       >
     </div>
   </NuxtLink>
@@ -18,9 +18,7 @@ const lightLogo = '/images/logo.light.png'
 const darkLogo = '/images/logo.dark.png'
 
 const currentLogoUrl = computed(() => {
-  // На сервере всегда показываем светлый логотип
   if (!isMounted.value) return lightLogo
-  // На клиенте уже определяем по теме
   return colorMode.value === 'dark' ? darkLogo : lightLogo
 })
 

@@ -10,28 +10,28 @@ const authStore = useAuthSessionStore()
 const isMobileMenuOpen = ref(false)
 const route = useRoute()
 
-// Функция для точной проверки активности с учетом query-параметров (?tab=...)
 function isLinkActive(linkTo: string): boolean {
   return route.fullPath === linkTo || (route.path === linkTo && !route.query.tab)
 }
+
 async function onLogout() {
   await handleLogout()
   isMobileMenuOpen.value = false
 }
-
 </script>
 
 <template>
-  <div class="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex text-neutral-900 dark:text-neutral-100">
-
+  <div
+    class="min-h-screen flex text-neutral-900 dark:text-neutral-100 transition-colors duration-200 bg-slate-200 dark:bg-neutral-950"
+  >
     <!-- 1. Десктопный сайдбар слева -->
-    <aside class="hidden lg:flex flex-col w-64 border-r border-default bg-[var(--ui-bg)] shrink-0 fixed inset-y-0 z-30">
+    <aside class="hidden lg:flex flex-col w-64 border-r border-black/5 dark:border-white/10 bg-white/75 dark:bg-neutral-900/75 backdrop-blur-md shrink-0 fixed inset-y-0 z-30 shadow-sm">
       <!-- Логотип -->
-      <div class="h-16 px-6 flex items-center border-b border-default">
+      <div class="h-16 px-6 flex items-center border-b border-black/5 dark:border-white/10">
         <AppLogo />
       </div>
 
-      <!-- Навигационное меню с выразительными стилями -->
+      <!-- Навигационное меню -->
       <div class="flex-1 px-4 py-6 overflow-y-auto space-y-1.5">
         <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mb-2">
           Навигация
@@ -43,22 +43,28 @@ async function onLogout() {
           :to="link.to"
           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group relative"
           :class="isLinkActive(link.to)
-            ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 font-semibold shadow-xs'
-            : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800/70 hover:text-neutral-900 dark:hover:text-white'"
+            ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400 font-semibold shadow-xs'
+            : 'text-neutral-600 dark:text-neutral-300 hover:bg-black/5 dark:hover:bg-white/5 hover:text-neutral-900 dark:hover:text-white'"
         >
+          <!-- Активный маркер слева (фирменный оранжевый) -->
+          <span
+            v-if="isLinkActive(link.to)"
+            class="absolute left-0 top-2 bottom-2 w-1 bg-orange-500 rounded-r-full"
+          />
+
           <UIcon
             :name="link.icon"
             class="w-5 h-5 shrink-0 transition-colors"
             :class="isLinkActive(link.to)
-              ? 'text-primary-600 dark:text-primary-400'
-              : 'text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-200'"
+              ? 'text-orange-500 dark:text-orange-400'
+              : 'text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300'"
           />
           <span>{{ link.label }}</span>
         </NuxtLink>
       </div>
 
       <!-- Нижняя часть сайдбара: Профиль и выход -->
-      <div class="p-4 border-t border-default space-y-3 bg-neutral-50/50 dark:bg-neutral-900/30">
+      <div class="p-4 border-t border-black/5 dark:border-white/10 space-y-3 bg-slate-100/50 dark:bg-neutral-950/40">
         <UserProfileBadge
           v-if="authStore.user"
           :user-name="authStore.user.user_name"
@@ -83,16 +89,18 @@ async function onLogout() {
     <div class="flex-1 flex flex-col lg:pl-64">
 
       <!-- Верхняя мини-панель -->
-      <header class="sticky top-0 z-20 h-16 bg-[var(--ui-bg)]/80 backdrop-blur border-b border-default px-4 sm:px-8 flex items-center justify-between gap-2">
+      <header class="sticky top-0 z-20 h-16 bg-white/65 dark:bg-neutral-900/65 backdrop-blur-md border-b border-black/5 dark:border-white/10 px-4 sm:px-8 flex items-center justify-between gap-4">
 
-        <div class="flex items-center lg:hidden min-w-0">
+        <div class="flex items-center lg:hidden min-w-0 -ml-4.5">
           <div class="truncate">
             <AppLogo />
           </div>
         </div>
 
-        <div class="hidden lg:block text-sm font-medium text-neutral-500">
-          {{ title || 'Панель управления системой' }}
+        <!-- Заголовок с оранжевым индикатором -->
+        <div class="hidden lg:flex items-center gap-2.5 text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+          <span class="inline-block w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(224,76,42,0.6)]" />
+          <span>{{ title || 'Панель управления системой' }}</span>
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
@@ -136,7 +144,6 @@ async function onLogout() {
               @click="isMobileMenuOpen = false"
             />
 
-            <!-- Навигационные ссылки для мобильного меню -->
             <nav class="space-y-1.5">
               <NuxtLink
                 v-for="link in menuItems"
@@ -144,25 +151,24 @@ async function onLogout() {
                 :to="link.to"
                 class="flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all group"
                 :class="isLinkActive(link.to)
-                  ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 font-semibold shadow-xs'
-                  : 'text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800/80 active:bg-neutral-200 dark:active:bg-neutral-800'"
+                  ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400 font-semibold shadow-xs'
+                  : 'text-neutral-700 dark:text-neutral-200 hover:bg-black/5 dark:hover:bg-white/5'"
                 @click="isMobileMenuOpen = false"
               >
                 <UIcon
                   :name="link.icon"
                   class="w-5 h-5 shrink-0 transition-colors"
                   :class="isLinkActive(link.to)
-                    ? 'text-primary-600 dark:text-primary-400'
-                    : 'text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-200'"
+                    ? 'text-orange-500 dark:text-orange-400'
+                    : 'text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300'"
                 />
                 <span>{{ link.label }}</span>
               </NuxtLink>
             </nav>
           </div>
 
-          <!-- Нижний блок -->
-          <div class="pt-4 border-t border-default space-y-3">
-            <div class="flex items-center justify-between px-3 py-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-900/50 border border-default">
+          <div class="pt-4 border-t border-black/5 dark:border-white/15 space-y-3">
+            <div class="flex items-center justify-between px-3 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10">
               <span class="text-sm font-medium text-neutral-600 dark:text-neutral-400">Тема оформления</span>
               <UColorModeButton />
             </div>

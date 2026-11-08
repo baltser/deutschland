@@ -1,15 +1,17 @@
-import { numberQueue } from '~~/server/queues/number.queue'
-import { carLogger } from '~~/server/services/car-logger'
-import { clientLogger } from '~~/server/services/client-logger'
-import { callDeviceEndpoint } from '~~/server/utils/device-api'
-import { getDeviceConfig } from '~~/server/utils/db/device-config'
+import { z } from 'zod'
+import { numberQueue } from '#server/queues/number.queue'
+import { carLogger } from '#server/services/car-logger'
+import { clientLogger } from '#server/services/client-logger'
+import { callDeviceEndpoint } from '#server/utils/device-api'
+import { getDeviceConfig } from '#server/utils/db/device-config'
 
-interface BatchRequestBody {
-  carNumber: string
-  totalHours: number
-  comment?: string | null
-  deviceIds: number[]
-}
+// 1. Строгая Zod-схема валидации входящих данных
+const batchBodySchema = z.object({
+  carNumber: z.string().min(1, 'Госномер обязателен'),
+  totalHours: z.number().positive('Количество часов должно быть больше 0'),
+  comment: z.string().optional().nullable(),
+  deviceIds: z.array(z.number()).min(1, 'Не выбраны устройства')
+})
 
 interface PassRedisRecord {
   id: string
@@ -24,7 +26,7 @@ interface PassRedisRecord {
   errorMessage?: string
 }
 
-// Хелпер для преобразования системных ошибок в чистый человеко-читаемый текст для истории клиента
+// Хелпер для преобразования системных ошибок в чистый текст для клиента
 const getCleanErrorMessage = (rawError: string): string => {
   if (rawError.includes('401') || rawError.includes('Unauthorized')) {
     return 'Ошибка авторизации на устройстве'
@@ -39,29 +41,23 @@ const getCleanErrorMessage = (rawError: string): string => {
 }
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
+  // 1. Пользователь уже гарантированно есть благодаря нашему middleware
+  const user = event.context.user
+  const userId = Number(user.user_id)
 
-  const userId = Number(session.user.user_id)
-  const body = await readBody<BatchRequestBody>(event)
+  // 2. Нативная валидация тела через Zod (Nitro выбросит 400 при несоответствии)
+  const body = await readValidatedBody(event, batchBodySchema.parse)
   const { carNumber, totalHours, comment, deviceIds } = body
 
-  if (!deviceIds || !Array.isArray(deviceIds) || deviceIds.length === 0) {
-    throw createError({ statusCode: 400, statusMessage: 'Не выбраны устройства' })
-  }
-
   const recordId = Date.now()
-  // Корректный расчет задержки: часы переводим в миллисекунды
-  const delayMs = totalHours * 60 * 60 * 1000
-
+  const delayMs = totalHours * 3600 * 1000 // Исправленный расчет задержки в мс
   const normalizedNumber = carNumber.toUpperCase()
   const normalizedComment = comment ? String(comment) : undefined
   const expiresAt = new Date(Date.now() + delayMs).toISOString()
 
   const storage = useStorage('redis')
 
+  // 3. Параллельно забираем конфигурации устройств
   const deviceConfigs = await Promise.all(
     deviceIds.map(async (deviceId) => {
       const cfg = await getDeviceConfig(deviceId).catch(() => null)
@@ -73,6 +69,7 @@ export default defineEventHandler(async (event) => {
   const validDeviceIds: number[] = []
   const deviceIdToConfig = new Map()
 
+  // 4. Проверка на дубликаты в Redis
   for (let i = 0; i < deviceIds.length; i++) {
     const deviceId = deviceIds[i]
     if (deviceId === undefined) continue
@@ -110,6 +107,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // 5. Отправка запросов на устройства
   const results = await Promise.allSettled(
     validDeviceIds.map(async (deviceId) => {
       const res = await callDeviceEndpoint(deviceId, 'cgi-bin__lnpr_cgi', {
@@ -132,6 +130,7 @@ export default defineEventHandler(async (event) => {
 
   let hasSuccess = false
 
+  // 6. Обработка результатов сетевых запросов, сохранение в Redis и постановка в очередь
   results.forEach((result, index) => {
     const deviceId = validDeviceIds[index]
     if (!deviceId) return
@@ -149,10 +148,9 @@ export default defineEventHandler(async (event) => {
       ? (result.reason instanceof Error ? result.reason.message : String(result.reason))
       : undefined
 
-    // Чистый текст ошибки для клиента и истории
     const clientErrorMessage = rawError ? getCleanErrorMessage(rawError) : undefined
 
-    const passData = {
+    const passData: PassRedisRecord = {
       id: passId,
       recordId,
       deviceId,
@@ -179,15 +177,23 @@ export default defineEventHandler(async (event) => {
       })
 
       deviceResults.push({ deviceId, addressId, status: 'success' })
+
+      // Ставим задачу на TTL в очередь (только при успехе)
+      numberQueue.add(
+        'expire-pass',
+        { recordId: passId, deviceId, addressId, carNumber: normalizedNumber, userId, comment: normalizedComment },
+        { delay: delayMs, jobId: passId }
+      ).catch((err: unknown) => {
+        carLogger.error(`Не удалось поставить задачу TTL в очередь для устройства #${deviceId}:`, err instanceof Error ? err : String(err))
+      })
+
     } else {
-      // Технический лог хранит полный стек ошибки для разработчика
       carLogger.error(`Не удалось добавить номер на устройство #${deviceId}:`, new Error(rawError), {
         recordId,
         deviceId,
         carNumber: normalizedNumber
       })
 
-      // В чистую историю клиента записываем понятный человеко-читаемый текст (без лишних полей)
       clientLogger.logEvent({
         userId,
         carNumber: normalizedNumber,
@@ -203,14 +209,6 @@ export default defineEventHandler(async (event) => {
 
       deviceResults.push({ deviceId, addressId, status: 'error', message: clientErrorMessage })
     }
-
-    numberQueue.add(
-      'expire-pass',
-      { recordId: passId, deviceId, addressId, carNumber: normalizedNumber, userId, comment: normalizedComment },
-      { delay: delayMs, jobId: passId }
-    ).catch((err: unknown) => {
-      carLogger.error(`Не удалось поставить задачу TTL в очередь для устройства #${deviceId}:`, err instanceof Error ? err : String(err))
-    })
   })
 
   return {

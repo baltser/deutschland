@@ -1,5 +1,5 @@
 // server/utils/device-api.ts
-import { getDeviceConfig } from '~~/server/utils/db/device-config'
+import { getDeviceConfig } from '#server/utils/db/device-config'
 
 export interface DeviceApiOptions {
   method?: 'GET' | 'POST'

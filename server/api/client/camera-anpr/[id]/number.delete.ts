@@ -1,7 +1,7 @@
 // server/api/client/camera-anpr/[id]/number.delete.ts
-import { callDeviceEndpoint } from '~~/server/utils/device-api'
-import { carLogger } from '~~/server/services/car-logger'
-import { clientLogger } from '~~/server/services/client-logger'
+import { callDeviceEndpoint } from '#server/utils/device-api'
+import { carLogger } from '#server/services/car-logger'
+import { clientLogger } from '#server/services/client-logger'
 
 interface PassRedisRecord {
   id: string | number
@@ -17,8 +17,12 @@ interface PassRedisRecord {
 }
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-  if (!session?.user) {
+  // 1. Берем пользователя из контекста ( middleware уже гарантирует, что сессия есть и роли валидны )
+  const user = event.context.user
+  const currentUserId = Number(user?.user_id)
+  const isAdmin = user?.role_name === 'admin'
+
+  if (!currentUserId) {
     throw createError({ statusCode: 401, message: 'Необходима авторизация' })
   }
 
@@ -31,7 +35,7 @@ export default defineEventHandler(async (event) => {
 
   const keys = await storage.getKeys('pass:')
   let targetKey: string | null = null
-  let passData: PassRedisRecord | null = null // Явно разрешаем null для предотвращения TS2454
+  let passData: PassRedisRecord | null = null
 
   for (const key of keys) {
     const data = await storage.getItem<PassRedisRecord>(key)
@@ -46,9 +50,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Пропуск не найден в активных' })
   }
 
-  const currentUserId = Number(session.user.user_id)
-  const isAdmin = session.user.role_name === 'admin'
-
+  // 🔒 2. Проверка владения: клиент может удалить только свой пропуск, админ — любой
   if (!isAdmin && Number(passData.userId) !== currentUserId) {
     throw createError({ statusCode: 403, message: 'У вас нет прав на удаление этого пропуска' })
   }

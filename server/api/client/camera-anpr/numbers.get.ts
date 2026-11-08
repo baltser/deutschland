@@ -1,4 +1,3 @@
-// server/api/client/camera-anpr/numbers.get.ts
 interface PassRedisRecord {
   id: string | number
   recordId?: number | string
@@ -12,11 +11,8 @@ interface PassRedisRecord {
   errorMessage?: string
 }
 
-export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
+export default defineEventHandler(async () => {
+
 
   const storage = useStorage('redis')
   const keys = await storage.getKeys('pass:')

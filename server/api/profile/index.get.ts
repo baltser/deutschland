@@ -1,16 +1,9 @@
 import type { UserProfile } from '#server/types/profile'
 
 export default defineEventHandler(async (event): Promise<UserProfile> => {
-  const session = await getUserSession(event)
-  if (!session.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Необходима авторизация'
-    })
-  }
 
   const user = await prisma.users.findUnique({
-    where: { user_id: session.user.user_id },
+    where: { user_id: event.context.user.user_id },
     select: {
       user_id: true,
       user_name: true,

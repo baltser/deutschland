@@ -2,17 +2,9 @@ import { logger } from '#server/utils/logger'
 import { prisma } from '#server/utils/prisma'
 import type { EmailTemplatesListResponse } from '#server/types/admin'
 
-export default defineEventHandler(async (event): Promise<EmailTemplatesListResponse> => {
+export default defineEventHandler(async (): Promise<EmailTemplatesListResponse> => {
   // 1. Проверяем сессию и права администратора
-  const session = await requireUserSession(event)
   const log = logger.withTag('admin:email-templates')
-
-  if (session.user.role_name !== 'admin') {
-    throw createError({
-      statusCode: 403,
-      message: 'Доступ запрещен: требуются права администратора'
-    })
-  }
 
   try {
     // 2. Получаем все шаблоны из базы данных, отсортированные по дате обновления

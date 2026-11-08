@@ -14,7 +14,7 @@ const importSchema = z.object({
 
 export default defineEventHandler(async (event) => {
 
-  // 2. Получение и валидация ID адреса
+  // 1. Получение и валидация ID адреса
   const id = getRouterParam(event, 'id')
   const addressId = Number(id)
   if (isNaN(addressId)) {

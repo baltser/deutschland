@@ -10,16 +10,7 @@ const updateSchema = z.object({
 })
 
 export default defineEventHandler(async (event): Promise<EmailTemplateUpdateResponse> => {
-  const session = await requireUserSession(event)
   const log = logger.withTag('admin:email-templates')
-
-  // Проверка прав администратора
-  if (session.user.role_name !== 'admin') {
-    throw createError({
-      statusCode: 403,
-      message: 'Доступ запрещен: требуются права администратора'
-    })
-  }
 
   const slug = getRouterParam(event, 'slug')
   if (!slug) {
@@ -51,7 +42,7 @@ export default defineEventHandler(async (event): Promise<EmailTemplateUpdateResp
       }
     })
 
-    log.success(`Шаблон письма "${slug}" успешно обновлен администратором ID: ${session.user.user_id}`)
+    log.success(`Шаблон письма "${slug}" успешно обновлен администратором ID: ${event.context.user.user_id}`)
 
     return {
       success: true,

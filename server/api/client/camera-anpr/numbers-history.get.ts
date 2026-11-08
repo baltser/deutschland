@@ -32,14 +32,13 @@ interface ParsedLogLine {
 }
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-  if (!session?.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-  }
+  // 1. Берем проверенного пользователя из контекста middleware
+  const user = event.context.user
+  const userId = Number(user?.user_id)
+  const isAdmin = user?.role_name === 'admin'
 
-  const userId = Number(session.user.user_id)
   if (!userId) {
-    throw createError({ statusCode: 400, statusMessage: 'Bad Request: userId not found' })
+    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
   }
 
   const logsDir = path.resolve(process.cwd(), 'logs')
@@ -67,7 +66,8 @@ export default defineEventHandler(async (event) => {
         const logData = entry.msg?.includes('Client pass event') ? entry : (entry.userId ? entry : entry)
         const targetUserId = logData.userId || entry.userId
 
-        if (targetUserId && Number(targetUserId) === userId) {
+        // 🔒 2. Фильтрация: если не админ, собираем логи строго для своего userId
+        if (isAdmin || (targetUserId && Number(targetUserId) === userId)) {
           rawEvents.push({
             time: Number(logData.time || entry.time || Date.now()),
             carNumber: String(logData.carNumber || entry.carNumber || ''),
@@ -98,6 +98,7 @@ export default defineEventHandler(async (event) => {
 
   const sessionsMap = new Map<string, SessionItem>()
 
+  // Исправленная сортировка исходных событий по времени (по возрастанию)
   rawEvents.sort((a, b) => a.time - b.time)
 
   for (const ev of rawEvents) {
@@ -143,6 +144,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Исправленная итоговая сортировка сессий (сначала самые свежие)
   const historyLogs = Array.from(sessionsMap.values())
     .sort((a, b) => b.time - a.time)
 

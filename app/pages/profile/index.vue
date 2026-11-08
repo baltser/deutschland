@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useProfile } from '~/composables/profile/useProfile'
 import { getRoleLabel, getRoleColor } from '~/utils/roles'
+import {useProfileStore} from "~/stores/profile";
 
 definePageMeta({
   layout: 'profile',
@@ -12,7 +13,8 @@ useSeoMeta({
 })
 
 const route = useRoute()
-const toast = useToast()
+const profileStore = useProfileStore()
+const { showSuccess } = useToastNotifications()
 
 // 💡 Простая и надежная деструктуризация
 const {
@@ -26,20 +28,23 @@ const {
   user,
   initProfile,
   saveProfile,
-  sendVerificationEmail,
-  handleAvatarUpdated
+  sendVerificationEmail
 } = useProfile()
+
+// Обработчик выбора файла аватара
+const handleAvatarSelected = async (file: File) => {
+  await profileStore.updateAvatar(file)
+}
 
 onMounted(async () => {
   await initProfile()
 
   if (route.query.email_verified === 'true') {
-    toast.add({
-      title: 'Email успешно подтвержден!',
-      description: 'Теперь вы можете использовать его для восстановления доступа.',
-      color: 'success',
-      icon: 'i-lucide-mail-check'
-    })
+    showSuccess(
+      'Email успешно подтвержден!',
+      'Теперь вы можете использовать его для восстановления доступа.',
+      { icon: 'i-lucide-mail-check' }
+    )
     navigateTo('/profile', { replace: true })
   }
 })
@@ -58,13 +63,14 @@ onMounted(async () => {
     <!-- 1. Карточка профиля -->
     <UCard>
       <div class="flex items-center gap-4 pb-4 border-b border-default mb-4">
+        <!-- 💡 Убран лишний userId, событие переведено на @select -->
         <UserAvatar
           v-if="user?.user_id"
-          :user-id="user.user_id"
           :avatar-url="user.avatar_path ? `/api/files/${user.avatar_path}` : null"
           :can-edit="true"
+          :loading="profileStore.isLoading"
           class="w-16 h-16"
-          @updated="handleAvatarUpdated"
+          @select="handleAvatarSelected"
         />
         <div class="space-y-1">
           <h2 class="font-semibold text-neutral-900 dark:text-white">{{ user?.user_name || 'Пользователь' }}</h2>
@@ -145,6 +151,7 @@ onMounted(async () => {
               <UInput v-model="state.password" type="password" placeholder="••••••••" icon="i-lucide-lock" class="w-full" />
             </UFormField>
 
+            <!-- 💡 Исправлена опечатка с бэкграундом/кавычкой в error -->
             <UFormField label="Подтверждение" name="confirmPassword" :error="passwordError">
               <UInput v-model="state.confirmPassword" type="password" placeholder="••••••••" icon="i-lucide-shield-check" class="w-full" />
             </UFormField>

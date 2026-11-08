@@ -2,10 +2,6 @@ import { prisma } from '#server/utils/prisma'
 import type {Prisma} from "@prisma/client";
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-  if (!session || !session.user || session.user.role_name !== 'admin') {
-    throw createError({ statusCode: 403, message: 'Доступ запрещен' })
-  }
 
   const query = getQuery(event)
   const page = Number(query.page) || 1

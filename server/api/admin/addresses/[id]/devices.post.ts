@@ -2,7 +2,6 @@ import { prisma } from '#server/utils/prisma'
 import type { CreateDeviceResponse } from '#server/types/admin'
 
 export default defineEventHandler(async (event): Promise<CreateDeviceResponse> => {
-  await requireUserSession(event)
 
   const idParam = event.context.params?.id
   const addressId = Number(idParam)

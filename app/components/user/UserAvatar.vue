@@ -1,39 +1,32 @@
 <script setup lang="ts">
-import { useToastNotifications } from '~/composables/useToast.ts'
-
 interface Props {
-  userId?: string | number
   avatarUrl?: string | null
   canEdit?: boolean
   size?: string
-  immediateUpload?: boolean
+  loading?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  userId: undefined,
   avatarUrl: null,
   canEdit: false,
   size: 'w-16 h-16',
-  immediateUpload: true
+  loading: false
 })
 
 const emit = defineEmits<{
-  (e: 'updated', newUrl: string): void
-  (e: 'select-file', file: File): void
+  (e: 'select', file: File): void
 }>()
 
-const { showSuccess, showError } = useToastNotifications()
-
+const { showError } = useToastNotifications()
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const localPreviewUrl = ref<string>('')
-const uploading = ref<boolean>(false)
 
 // Актуальный URL аватара (локальное превью имеет приоритет)
 const displayAvatarUrl = computed(() => localPreviewUrl.value || props.avatarUrl)
 
 // Открытие диалога выбора файла
 const triggerFileInput = () => {
-  if (uploading.value) return
+  if (props.loading) return
   fileInputRef.value?.click()
 }
 
@@ -64,7 +57,7 @@ const validateFile = (file: File): boolean => {
 }
 
 // Обработка выбора файла
-const handleFileSelect = async (event: Event) => {
+const handleFileSelect = (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
@@ -77,37 +70,10 @@ const handleFileSelect = async (event: Event) => {
   revokePreview()
   localPreviewUrl.value = URL.createObjectURL(file)
 
-  // Режим отложенной загрузки (передаем файл наверх в форму)
-  if (!props.immediateUpload) {
-    emit('select-file', file)
-    if (fileInputRef.value) fileInputRef.value.value = ''
-    return
-  }
+  // Передаем валидный файл наверх родителю (или в форму)
+  emit('select', file)
 
-  // Режим мгновенной загрузки через эндпоинт
-  uploading.value = true
-  try {
-    const formData = new FormData()
-    formData.append('avatar', file)
-
-    const response = await $fetch<{ success: boolean; avatarUrl: string }>(`/api/profile/${props.userId}/avatar`, {
-      method: 'POST',
-      body: formData
-    })
-
-    showSuccess('Успешно', 'Аватар обновлен')
-
-    emit('updated', response.avatarUrl)
-  } catch (err: unknown) {
-    console.error('[AvatarUpload] Ошибка:', err)
-    revokePreview()
-
-    const fetchError = err as { data?: { message?: string } }
-    showError('Ошибка загрузки', fetchError.data?.message || 'Не удалось загрузить аватар на сервер')
-  } finally {
-    uploading.value = false
-    if (fileInputRef.value) fileInputRef.value.value = ''
-  }
+  if (fileInputRef.value) fileInputRef.value.value = ''
 }
 
 onUnmounted(() => {
@@ -124,7 +90,7 @@ onUnmounted(() => {
       tabindex="0"
       aria-label="Изменить аватар"
       class="relative group rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-transform active:scale-95"
-      :class="{ 'opacity-60 pointer-events-none': uploading }"
+      :class="{ 'opacity-60 pointer-events-none': loading }"
       @click="triggerFileInput"
       @keydown.enter.space.prevent="triggerFileInput"
     >
@@ -145,10 +111,10 @@ onUnmounted(() => {
       <!-- Оверлей при наведении / загрузке -->
       <div
         class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center transition-opacity"
-        :class="uploading ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+        :class="loading ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
       >
         <UIcon
-          v-if="!uploading"
+          v-if="!loading"
           name="i-lucide-camera"
           class="w-6 h-6 text-white"
         />

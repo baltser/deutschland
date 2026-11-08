@@ -1,11 +1,13 @@
+// stores/adminUserMutations.ts
 import { defineStore } from 'pinia'
 import { getErrorMessage } from '~/types/error'
 import { useAdminClientsStore } from './clients'
 import { useAdminStaffStore } from './staff'
-import type { StaffUser, ClientUser } from '~/types/user'
+import type { ClientUser, StaffUser } from '~/types/user'
 
 export const useAdminUserMutationsStore = defineStore('admin-user-mutations', () => {
-  const toast = useToast()
+  // Подключаем наш стандартизированный композабл для уведомлений
+  const { showSuccess, showError } = useToastNotifications()
   const clientsStore = useAdminClientsStore()
   const staffStore = useAdminStaffStore()
 
@@ -45,16 +47,11 @@ export const useAdminUserMutationsStore = defineStore('admin-user-mutations', ()
             updatedUserObj = {}
           }
           // Очищаем префикс, чтобы в объекте хранился чистый относительный путь бакета
-          const cleanPath = avatarResponse.avatarUrl.replace(/^\/api\/files\//, '')
-          updatedUserObj.avatar_path = cleanPath
+          updatedUserObj.avatar_path = avatarResponse.avatarUrl.replace(/^\/api\/files\//, '')
         }
       }
 
-      toast.add({
-        title: 'Успешно',
-        description: 'Данные пользователя обновлены',
-        color: 'success',
-      })
+      showSuccess('Успешно', 'Данные пользователя обновлены')
 
       // 3. Локально обновляем данные в списке клиентов, чтобы таблица сразу показала изменения без перезагрузки
       const clientIndex = clientsStore.list.findIndex(c => c.user_id === userId)
@@ -71,11 +68,7 @@ export const useAdminUserMutationsStore = defineStore('admin-user-mutations', ()
       return true
     } catch (err: unknown) {
       const errorMsg = getErrorMessage(err, 'Не удалось обновить данные пользователя')
-      toast.add({
-        title: 'Ошибка',
-        description: errorMsg,
-        color: 'error',
-      })
+      showError('Ошибка', errorMsg)
       return false
     }
   }

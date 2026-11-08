@@ -22,10 +22,9 @@ const updateProfileSchema = z.object({
 export default defineEventHandler(async (event): Promise<UserProfile> => {
   const log = logger.withTag('client:profile:update')
 
-  const session = await getUserSession(event)
-  if (!session.user) {
-    throw createError({ statusCode: 401, message: 'Необходима авторизация' })
-  }
+  // 1. Берем пользователя из контекста, который подготовил middleware
+  const user = event.context.user
+  const userId = Number(user.user_id)
 
   let body
   try {
@@ -42,7 +41,7 @@ export default defineEventHandler(async (event): Promise<UserProfile> => {
 
   try {
     const currentUser = await prisma.users.findUnique({
-      where: { user_id: session.user.user_id },
+      where: { user_id: userId },
       select: { user_name: true, email: true }
     })
 
@@ -52,10 +51,10 @@ export default defineEventHandler(async (event): Promise<UserProfile> => {
       updateData.user_name = body.user_name
     }
 
-    // 💡 Если email изменился — обновляем его И сбрасываем подтверждение в null
+    // Если email изменился — обновляем его И сбрасываем подтверждение в null
     if (body.email !== undefined && body.email !== currentUser?.email) {
       updateData.email = body.email
-      updateData.email_verified_at = null // Сбрасываем статус подтверждения почты
+      updateData.email_verified_at = null
     }
 
     if (body.password) {
@@ -75,7 +74,7 @@ export default defineEventHandler(async (event): Promise<UserProfile> => {
 
     if (Object.keys(updateData).length === 0) {
       const existingUser = await prisma.users.findUnique({
-        where: { user_id: session.user.user_id },
+        where: { user_id: userId },
         select: selectFields
       })
       if (!existingUser) throw createError({ statusCode: 404, message: 'Пользователь не найден' })
@@ -83,7 +82,7 @@ export default defineEventHandler(async (event): Promise<UserProfile> => {
     }
 
     const updatedUser = await prisma.users.update({
-      where: { user_id: session.user.user_id },
+      where: { user_id: userId },
       data: updateData,
       select: selectFields
     })
@@ -102,9 +101,8 @@ export default defineEventHandler(async (event): Promise<UserProfile> => {
 
     return updatedUser
   } catch (err: unknown) {
-    log.error(`Ошибка при обновлении профиля пользователя ID ${session.user.user_id}:`, err)
+    log.error(`Ошибка при обновлении профиля пользователя ID ${userId}:`, err)
 
-    // TypeScript автоматически понимает тип внутри этой проверки благодаря instanceof
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
       throw createError({
         statusCode: 400,
@@ -112,7 +110,6 @@ export default defineEventHandler(async (event): Promise<UserProfile> => {
       })
     }
 
-    // Безопасно проверяем наличие statusCode для кастомных ошибок Nuxt
     const httpError = err as { statusCode?: number }
     if (httpError.statusCode) {
       throw err

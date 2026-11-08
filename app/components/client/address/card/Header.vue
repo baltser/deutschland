@@ -17,13 +17,17 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="relative overflow-hidden p-6 bg-white/95 dark:bg-neutral-900/95 space-y-4">
-    <!-- Фоновое изображение формы объекта -->
+  <div
+class="relative overflow-hidden p-6 transition-all duration-300
+             bg-slate-100/80 border-b border-slate-200/80 shadow-xs
+             dark:bg-neutral-900/90 dark:border-neutral-800/80 space-y-4">
+
+    <!-- Фоновое изображение (чуть подняли контраст для светлой темы) -->
     <div class="absolute inset-0 z-0 pointer-events-none">
       <img
-        src="/images/form-bg.jpg"
+        src="/images/form1-bg.jpeg"
         alt="Form Background"
-        class="w-full h-full object-cover opacity-25 dark:opacity-15"
+        class="w-full h-full object-cover opacity-35 dark:opacity-15 mix-blend-multiply dark:mix-blend-normal"
       >
     </div>
 
@@ -31,16 +35,16 @@ const emit = defineEmits<{
     <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
       <!-- Левая часть: Иконка и адрес -->
       <div class="flex items-center gap-4">
-        <div class="p-3.5 rounded-2xl bg-white/90 dark:bg-neutral-800/90 text-primary-600 dark:text-primary-400 border border-neutral-200/80 dark:border-neutral-700 shadow-xs flex-shrink-0">
+        <div class="p-3.5 rounded-2xl bg-white dark:bg-neutral-800 text-primary-600 dark:text-primary-400 border border-slate-200/90 dark:border-neutral-700 shadow-sm flex-shrink-0">
           <UIcon name="i-lucide-building-2" class="w-6 h-6" />
         </div>
         <div>
-          <h2 class="font-bold text-neutral-900 dark:text-white text-base sm:text-lg">
+          <h2 class="font-bold text-slate-900 dark:text-white text-base sm:text-lg tracking-tight">
             {{ addressName }}
           </h2>
-          <div class="flex items-center gap-3 text-xs text-neutral-600 dark:text-neutral-300 mt-1">
-            <span class="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
-              <span class="w-2 h-2 rounded-full bg-emerald-500"/>
+          <div class="flex items-center gap-3 text-xs text-slate-600 dark:text-neutral-300 mt-1">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-200/60 dark:border-emerald-800/60">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"/>
               Активных пропусков: {{ activePassesCount || 0 }}
             </span>
           </div>
@@ -57,7 +61,7 @@ const emit = defineEmits<{
     </div>
 
     <!-- Встроенная форма добавления номера -->
-    <div class="relative z-10 pt-2 border-t border-neutral-200/60 dark:border-neutral-800/80">
+    <div class="relative z-10 pt-2 border-t border-slate-200/80 dark:border-neutral-800/80">
       <ClientAddressNumberForm
         v-model:form="form"
         @submit="emit('submitForm')"

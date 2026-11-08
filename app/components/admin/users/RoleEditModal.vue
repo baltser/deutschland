@@ -1,18 +1,12 @@
 <script setup lang="ts">
 import ClientAddressList from '~/components/client/address/List.vue'
 import UserAvatar from '~/components/user/UserAvatar.vue'
-import type {StaffUser, ClientUser, ClientAddressRelation} from '~/types/user'
-import { useAdminUserMutationsStore } from "~/stores/admin/users/mutations"
-
-export type UserEditTarget = (StaffUser | ClientUser) & {
-  role_name?: string
-  addresses?: ClientAddressRelation[]
-}
+import type { UserEditTarget } from '~/composables/admin/user/useForm.ts' // ********* ИСПРАВИТЬ !!!
+import { useUserEditForm } from '~/composables/admin/user/useForm.ts'
 
 const props = defineProps<{
   modelValue: boolean
   user: UserEditTarget | null
-  // isSaving можно сделать опциональным пропсом, если родителю нужно об этом знать
   isSaving?: boolean
 }>()
 
@@ -20,122 +14,28 @@ const emit = defineEmits<{
   'update:modelValue': [value: boolean]
 }>()
 
-// --- ЛОГИКА ФОРМЫ И СОСТОЯНИЯ ---
-const mutationsStore = useAdminUserMutationsStore()
-const localIsSaving = ref(false)
-
-const form = reactive({
-  user_name: '',
-  role_name: '',
-  avatar_path: null as string | null,
-  newAvatarFile: null as File | null,
-  localPreviewUrl: null as string | null
-})
-
-// Определяем исходную роль пользователя
-const initialRole = computed(() => {
-  if (!props.user) return 'client'
-
-  // Роль теперь лежит прямо в поле role_name (или определяем клиента по адресам)
-  const raw = props.user.role_name || ('addresses' in props.user ? 'client' : 'installer')
-  return raw.toLowerCase().trim()
-})
-
-const isClient = computed(() => initialRole.value === 'client')
-
-// Заголовок модалки
-const modalTitle = computed(() => {
-  if (!props.user) return 'Пользователь'
-  const name = form.user_name || props.user.user_name || 'Без имени'
-  return isClient.value ? `Клиент: ${name}` : `Сотрудник: ${name}`
-})
-
-const staffRoleOptions = [
-  { label: 'Администратор (admin)', value: 'admin' },
-  { label: 'Монтажник (installer)', value: 'installer' },
-]
-
-// Актуальный URL для отображения (превью нового файла имеет приоритет)
-const displayAvatarUrl = computed(() => {
-  if (form.localPreviewUrl) return form.localPreviewUrl
-  const path = form.avatar_path || props.user?.avatar_path
-  if (!path) return null
-  return path.startsWith('/api/files/') ? path : `/api/files/${path}`
-})
-
-// Проверка: были ли сделаны изменения в форме
-const hasChanges = computed(() => {
-  if (!props.user) return false
-  const origName = props.user.user_name || ''
-  const origRole = initialRole.value
-
-  return (
-    form.user_name !== origName ||
-    form.newAvatarFile !== null ||
-    (!isClient.value && form.role_name !== origRole)
-  )
-})
-
-// Очистка памяти Blob URL
-const revokePreview = () => {
-  if (form.localPreviewUrl) {
-    URL.revokeObjectURL(form.localPreviewUrl)
-    form.localPreviewUrl = null
-  }
-}
-
-// Синхронизация формы при открытии модалки или смене юзера
-watch(
-  () => props.user,
-  (newUser) => {
-    revokePreview()
-    if (newUser) {
-      form.user_name = newUser.user_name || ''
-      form.role_name = initialRole.value
-      form.avatar_path = newUser.avatar_path || null
-      form.newAvatarFile = null
-      form.localPreviewUrl = null
-    }
-  },
-  { immediate: true, deep: true }
-)
-
-// Обработка выбора нового аватара
-function handleAvatarFileSelected(file: File) {
-  revokePreview()
-  form.newAvatarFile = file
-  form.localPreviewUrl = URL.createObjectURL(file)
-}
-
 // Управление открытием через v-model
 const isOpen = computed({
   get: () => props.modelValue,
   set: (val) => emit('update:modelValue', val)
 })
 
-// Сохранение через стор мутаций
-async function handleSave() {
-  if (!props.user || !hasChanges.value || localIsSaving.value) return
-  localIsSaving.value = true
+// Подключаем всю инкапсулированную логику формы и стора мутаций
+const {
+  form,
+  isClient,
+  modalTitle,
+  displayAvatarUrl,
+  hasChanges,
+  isSaving: isFormSaving,
+  handleAvatarSelected,
+  save
+} = useUserEditForm(() => props.user, () => { isOpen.value = false })
 
-  try {
-    const success = await mutationsStore.updateUser(props.user.user_id, {
-      user_name: form.user_name.trim(),
-      role_name: form.role_name,
-      avatarFile: form.newAvatarFile
-    })
-
-    if (success) {
-      isOpen.value = false // Закрываем модалку при успехе
-    }
-  } finally {
-    localIsSaving.value = false
-  }
-}
-
-onUnmounted(() => {
-  revokePreview()
-})
+const staffRoleOptions = [
+  { label: 'Администратор (admin)', value: 'admin' },
+  { label: 'Монтажник (installer)', value: 'installer' },
+]
 </script>
 
 <template>
@@ -145,12 +45,10 @@ onUnmounted(() => {
         <!-- Блок профиля и аватара -->
         <div class="flex items-center gap-4 p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200/80 dark:border-neutral-700/60">
           <UserAvatar
-            :user-id="user.user_id"
             :avatar-url="displayAvatarUrl"
             :can-edit="true"
-            :immediate-upload="false"
             size="w-14 h-14"
-            @select-file="handleAvatarFileSelected"
+            @select="handleAvatarSelected"
           />
           <div class="space-y-1 min-w-0 flex-1">
             <div class="flex items-center gap-2">
@@ -210,16 +108,16 @@ onUnmounted(() => {
           <UButton
             color="neutral"
             variant="ghost"
-            :disabled="isSaving"
+            :disabled="isFormSaving"
             @click="isOpen = false"
           >
             Отмена
           </UButton>
           <UButton
             color="primary"
-            :loading="isSaving"
+            :loading="isFormSaving"
             :disabled="!hasChanges"
-            @click="handleSave"
+            @click="save"
           >
             Сохранить
           </UButton>

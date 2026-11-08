@@ -3,7 +3,8 @@ import type { StaffListResponse } from '~/types/admin'
 import { getErrorMessage } from '~/types/error'
 
 export const useAdminStaffStore = defineStore('admin-staff', () => {
-  const toast = useToast()
+
+  const { showSuccess, showError } = useToastNotifications()
 
   const {
     data: staffResponse,
@@ -21,21 +22,13 @@ export const useAdminStaffStore = defineStore('admin-staff', () => {
         body: payload
       })
 
-      toast.add({
-        title: 'Успешно',
-        description: 'Сотрудник успешно добавлен в систему',
-        color: 'success',
-      })
+      showSuccess('Успешно', 'Сотрудник успешно добавлен в систему')
 
       await refreshStaff()
       return true
     } catch (err: unknown) {
       const errorMsg = getErrorMessage(err, 'Не удалось создать сотрудника')
-      toast.add({
-        title: 'Ошибка',
-        description: errorMsg,
-        color: 'error',
-      })
+      showError('Ошибка', errorMsg)
       throw err
     }
   }

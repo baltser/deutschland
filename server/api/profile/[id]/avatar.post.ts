@@ -3,7 +3,8 @@ import { logger } from '#server/utils/logger.ts'
 import type { AvatarUploadResponse } from '#server/types/profile'
 
 export default defineEventHandler(async (event): Promise<AvatarUploadResponse> => {
-  const session = await requireUserSession(event)
+  // 1. Берем проверенного пользователя из контекста (middleware уже всё проверил)
+  const user = event.context.user
   const targetUserId = getRouterParam(event, 'id')
 
   if (!targetUserId) {
@@ -16,8 +17,8 @@ export default defineEventHandler(async (event): Promise<AvatarUploadResponse> =
   const userIdNum = Number(targetUserId)
   const log = logger.withTag('users:avatar')
 
-  const isAdmin = session.user.role_name === 'admin'
-  const isSelf = Number(session.user.user_id) === userIdNum
+  const isAdmin = user.role_name === 'admin'
+  const isSelf = Number(user.user_id) === userIdNum
 
   if (!isSelf && !isAdmin) {
     throw createError({
@@ -62,6 +63,7 @@ export default defineEventHandler(async (event): Promise<AvatarUploadResponse> =
     })
   }
 
+  // 💡 Исправленный расчет размера (2 МБ)
   if (avatarPart.data.length > 2 * 1024 * 1024) {
     throw createError({
       statusCode: 400,

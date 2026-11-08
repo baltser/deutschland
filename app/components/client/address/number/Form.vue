@@ -43,23 +43,26 @@ const selectInterval = (hours: number) => {
 
 <template>
   <form
-    class="relative overflow-hidden p-6 rounded-3xl border border-neutral-200/80 dark:border-neutral-800 shadow-xl space-y-4"
+    class="relative overflow-hidden p-6 rounded-3xl transition-all duration-300
+           bg-white/80 border border-slate-200/80 shadow-xl shadow-slate-200/50 backdrop-blur-xl
+           dark:bg-slate-900/85 dark:border-white/10 dark:shadow-2xl dark:shadow-black/40
+           before:absolute before:inset-0 before:-z-10 before:bg-gradient-to-br
+           before:from-primary-500/10 before:via-transparent before:to-emerald-500/10
+           after:absolute after:inset-0 after:-z-10 after:bg-white/40 dark:after:bg-black/20"
     @submit.prevent="emit('submit')"
   >
-    <!-- Фоновое изображение формы -->
-    <div class="absolute inset-0 z-0 pointer-events-none">
-      <img
-        src="/images/form-bg.jpg"
-        alt="Form Background"
-        class="w-full h-full object-cover opacity-80 dark:opacity-50"
-      >
-    </div>
+    <!-- Декоративные свечения по углам (фирменные цвета брендинга) -->
+    <div class="absolute -top-12 -left-12 w-36 h-36 bg-primary-500/15 rounded-full blur-2xl pointer-events-none" />
+    <div class="absolute -bottom-12 -right-12 w-36 h-36 bg-emerald-500/15 rounded-full blur-2xl pointer-events-none" />
 
     <!-- Содержимое формы -->
     <div class="relative z-10 space-y-4">
+      <!-- Заголовок с фирменным акцентным бейджем -->
       <div class="flex items-center justify-between">
-        <div class="font-bold text-xs uppercase tracking-wider text-neutral-900 dark:text-white flex items-center gap-2">
-          <UIcon name="i-lucide-sparkles" class="w-4 h-4 text-primary-500" />
+        <div class="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <div class="p-1 rounded-lg bg-primary-500/10 dark:bg-primary-500/20 text-primary-500">
+            <UIcon name="i-lucide-sparkles" class="w-4 h-4" />
+          </div>
           <span>Выписать пропуск на выбранные устройства ({{ form.selectedDeviceIds.length }})</span>
         </div>
       </div>
@@ -72,7 +75,7 @@ const selectInterval = (hours: number) => {
             placeholder="M802AO799"
             size="md"
             icon="i-lucide-car"
-            class="w-full font-mono uppercase font-bold bg-white dark:bg-neutral-800"
+            class="w-full font-mono uppercase font-bold bg-white/90 dark:bg-slate-950/70 border-slate-200 dark:border-slate-800 shadow-xs focus:ring-2 focus:ring-primary-500"
             @input="handleCarNumberInput(form.carNumber)"
           />
         </UFormField>
@@ -84,13 +87,13 @@ const selectInterval = (hours: number) => {
             placeholder="Такси, Курьер, Гости..."
             icon="i-lucide-user"
             size="md"
-            class="w-full bg-white dark:bg-neutral-800"
+            class="w-full bg-white/90 dark:bg-slate-950/70 border-slate-200 dark:border-slate-800 shadow-xs focus:ring-2 focus:ring-primary-500"
           />
         </UFormField>
 
         <!-- Выбор интервала -->
         <div class="space-y-1.5">
-          <label class="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
             Период доступа
           </label>
 
@@ -105,8 +108,8 @@ const selectInterval = (hours: number) => {
               :class="[
                 'font-semibold transition-all duration-200 rounded-xl px-3 py-1.5 shadow-2xs',
                 form.totalHours === item.hours
-                  ? 'shadow-md shadow-primary-500/20 ring-2 ring-primary-500/30'
-                  : 'bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-200 border-neutral-300 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-500 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                  ? 'shadow-md shadow-primary-500/25 ring-2 ring-primary-500/40 bg-primary-600 text-white'
+                  : 'bg-white/80 dark:bg-slate-950/60 text-slate-700 dark:text-slate-200 border-slate-300/80 dark:border-slate-700 hover:border-primary-400 dark:hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-950/30'
               ]"
               @click="selectInterval(item.hours)"
             >
@@ -124,7 +127,11 @@ const selectInterval = (hours: number) => {
           size="md"
           icon="i-lucide-key-round"
           :loading="form.submitting"
-          class="group relative px-6 py-2.5 font-medium tracking-wide text-white bg-gradient-to-r from-primary-600 via-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-600 shadow-lg shadow-primary-500/20 hover:shadow-xl hover:shadow-primary-500/30 transition-all duration-300 rounded-xl border border-primary-400/30 active:scale-[0.98]"
+          class="group relative px-6 py-2.5 font-medium tracking-wide text-white
+                 bg-gradient-to-r from-primary-600 via-primary-500 to-emerald-600
+                 hover:from-primary-500 hover:to-emerald-500
+                 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/40
+                 transition-all duration-300 rounded-xl border border-white/20 active:scale-[0.98]"
         >
           <template #icon>
             <UIcon

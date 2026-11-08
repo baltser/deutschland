@@ -6,16 +6,7 @@ import type { AdminUserUpdateResponse, UpdateUserBody } from '#server/types/admi
 export default defineEventHandler(async (event): Promise<AdminUserUpdateResponse> => {
   const log = logger.withTag('admin:users:update')
 
-  // 1. Проверяем авторизацию и права администратора[cite: 12]
-  const session = await requireUserSession(event)
-  if (session.user.role_name !== 'admin') {
-    throw createError({
-      statusCode: 403,
-      message: 'У вас нет прав для выполнения этой операции',
-    })
-  }
-
-  // 2. Получаем ID пользователя из параметров URL[cite: 12]
+  // 1. Получаем ID пользователя из параметров URL[cite: 12]
   const id = getRouterParam(event, 'id')
   if (!id) {
     throw createError({
@@ -65,7 +56,7 @@ export default defineEventHandler(async (event): Promise<AdminUserUpdateResponse
       data: updateData,
     })
 
-    log.success(`Администратор #${session.user.user_id} обновил данные пользователя ID: ${userId}`)
+    log.success(`Администратор #${event.context.user.user_id} обновил данные пользователя ID: ${userId}`)
 
     return {
       success: true,

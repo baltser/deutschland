@@ -132,7 +132,7 @@
 
 
 
-### 8. `useProfileStore` (`profile/index.ts`)
+### 8. `useProfileStore` (`profile/index.get.ts`)
 
 Управление личным профилем пользователя.
 

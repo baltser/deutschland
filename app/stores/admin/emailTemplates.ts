@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia'
 import type { EmailTemplate, TemplatesListResponse, TemplateUpdateResponse } from '~/types/template'
+import { getErrorMessage } from '~/types/error'
 
 export const useEmailTemplatesStore = defineStore('email-templates', () => {
-  const toast = useToast()
+  // Подключаем наш стандартизированный композабл для уведомлений
+  const { showSuccess, showError } = useToastNotifications()
 
   const templates = ref<EmailTemplate[]>([])
   const selectedSlug = ref<string>('email_verification')
@@ -28,12 +30,7 @@ export const useEmailTemplatesStore = defineStore('email-templates', () => {
         selectTemplate(selectedSlug.value)
       }
     } catch (err: unknown) {
-      const fetchErr = err as { data?: { message?: string } }
-      toast.add({
-        title: 'Ошибка',
-        description: fetchErr?.data?.message || 'Не удалось загрузить шаблоны',
-        color: 'error'
-      })
+      showError('Ошибка', getErrorMessage(err, 'Не удалось загрузить шаблоны'))
     } finally {
       isLoading.value = false
     }
@@ -62,14 +59,9 @@ export const useEmailTemplatesStore = defineStore('email-templates', () => {
       if (index !== -1 && res.template) {
         templates.value[index] = res.template
       }
-      toast.add({ title: 'Успешно', description: 'Шаблон сохранен в базу данных', color: 'success' })
+      showSuccess('Успешно', 'Шаблон сохранен в базу данных')
     } catch (err: unknown) {
-      const fetchErr = err as { data?: { message?: string } }
-      toast.add({
-        title: 'Ошибка',
-        description: fetchErr?.data?.message || 'Не удалось сохранить шаблон',
-        color: 'error'
-      })
+      showError('Ошибка', getErrorMessage(err, 'Не удалось сохранить шаблон'))
     } finally {
       isSaving.value = false
     }

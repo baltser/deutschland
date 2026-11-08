@@ -1,3 +1,4 @@
+// stores/adminAddresses.ts
 import { defineStore } from 'pinia'
 import type { AddressItem } from '~/types/address'
 import type {
@@ -10,7 +11,8 @@ import type {
 import { getErrorMessage } from '~/types/error'
 
 export const useAdminAddressesStore = defineStore('adminAddresses', () => {
-  const toast = useToast()
+  // Подключаем наш стандартизированный композабл для уведомлений
+  const { showSuccess, showError } = useToastNotifications()
 
   const addresses = ref<AddressItem[]>([])
   const currentAddress = ref<AddressItem | null>(null)
@@ -22,7 +24,6 @@ export const useAdminAddressesStore = defineStore('adminAddresses', () => {
     loading.value = true
     error.value = null
     try {
-      // 💡 Используем AddressesListResponse
       const data = await $fetch<AddressesListResponse>('/api/admin/addresses')
       addresses.value = data.addresses || []
     } catch (err: unknown) {
@@ -35,26 +36,17 @@ export const useAdminAddressesStore = defineStore('adminAddresses', () => {
   // 2. Создание нового адреса
   async function createAddress(addressText: string) {
     try {
-      // 💡 Типизируем тело запроса и ответ
       await $fetch<CreateAddressResponse>('/api/admin/addresses', {
         method: 'POST',
-        body: { address_name: addressText.trim() } // Соответствует CreateAddressBody
+        body: { address_name: addressText.trim() }
       })
 
-      toast.add({
-        title: 'Успешно',
-        description: 'Адрес успешно добавлен в систему',
-        color: 'success'
-      })
+      showSuccess('Успешно', 'Адрес успешно добавлен в систему')
 
       await fetchAddresses()
       return true
     } catch (err: unknown) {
-      toast.add({
-        title: 'Ошибка',
-        description: getErrorMessage(err, 'Не удалось добавить адрес'),
-        color: 'error'
-      })
+      showError('Ошибка', getErrorMessage(err, 'Не удалось добавить адрес'))
       return false
     }
   }
@@ -82,19 +74,11 @@ export const useAdminAddressesStore = defineStore('adminAddresses', () => {
         body: payload
       })
 
-      toast.add({
-        title: 'Успешно',
-        description: 'Клиент успешно привязан к объекту',
-        color: 'success'
-      })
+      showSuccess('Успешно', 'Клиент успешно привязан к объекту')
 
       await fetchAddressById(addressId)
     } catch (err: unknown) {
-      toast.add({
-        title: 'Ошибка',
-        description: getErrorMessage(err, 'Не удалось привязать клиента'),
-        color: 'error'
-      })
+      showError('Ошибка', getErrorMessage(err, 'Не удалось привязать клиента'))
       throw err
     }
   }
@@ -111,21 +95,13 @@ export const useAdminAddressesStore = defineStore('adminAddresses', () => {
         }
       )
 
-      toast.add({
-        title: 'Успешно',
-        description: data.message || 'Клиенты успешно импортированы',
-        color: 'success'
-      })
+      showSuccess('Успешно', data.message || 'Клиенты успешно импортированы')
 
       // Обновляем информацию по текущему адресу, чтобы таблица на странице сразу обновилась
       await fetchAddressById(addressId)
       return true
     } catch (err: unknown) {
-      toast.add({
-        title: 'Ошибка импорта',
-        description: getErrorMessage(err, 'Не удалось импортировать клиентов'),
-        color: 'error'
-      })
+      showError('Ошибка импорта', getErrorMessage(err, 'Не удалось импортировать клиентов'))
       return false
     } finally {
       loading.value = false

@@ -16,15 +16,6 @@ const createStaffSchema = z.object({
 export default defineEventHandler(async (event): Promise<CreateStaffResponse> => {
   const log = logger.withTag('admin:users:create')
 
-  // Проверяем сессию администратора
-  const session = await requireUserSession(event)
-  if (session.user.role_name !== 'admin') {
-    throw createError({
-      statusCode: 403,
-      message: 'У вас нет прав для выполнения этой операции',
-    })
-  }
-
   const body = await readBody(event)
   const parseResult = createStaffSchema.safeParse(body)
 
@@ -63,7 +54,7 @@ export default defineEventHandler(async (event): Promise<CreateStaffResponse> =>
       }
     })
 
-    log.success(`Администратор #${session.user.user_id} назначил существующего клиента ${updatedUser.phone} сотрудником (${roleName})`)
+    log.success(`Администратор #${event.context.user.user_id} назначил существующего клиента ${updatedUser.phone} сотрудником (${roleName})`)
 
     return {
       success: true,
@@ -87,7 +78,7 @@ export default defineEventHandler(async (event): Promise<CreateStaffResponse> =>
     }
   })
 
-  log.success(`Администратор #${session.user.user_id} создал сотрудника ${newUser.phone} (${roleName})`)
+  log.success(`Администратор #${event.context.user.user_id} создал сотрудника ${newUser.phone} (${roleName})`)
 
   return {
     success: true,

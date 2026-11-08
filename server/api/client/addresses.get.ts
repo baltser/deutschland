@@ -5,16 +5,9 @@ import type { ClientAddressesResponse } from '#server/types/client'
 export default defineEventHandler(async (event): Promise<ClientAddressesResponse> => {
   const log = logger.withTag('client:addresses')
 
-  // 1. Проверяем сессию
-  const session = await getUserSession(event)
-  if (!session || !session.user) {
-    throw createError({
-      statusCode: 401,
-      message: 'Необходима авторизация',
-    })
-  }
-
-  const { user_id, role_name } = session.user
+  // 1. Безопасно получаем пользователя, которого уже проверил и положил в контекст middleware
+  const user = event.context.user
+  const user_id = Number(user?.user_id)
 
   if (!user_id) {
     throw createError({
@@ -23,18 +16,10 @@ export default defineEventHandler(async (event): Promise<ClientAddressesResponse
     })
   }
 
-  // 2. Строго проверяем, что запрос делает именно клиент (или админ)
-  if (role_name !== 'client' && role_name !== 'admin') {
-    throw createError({
-      statusCode: 403,
-      message: 'Доступ разрешен только для клиентов',
-    })
-  }
-
   try {
-    // 3. Загружаем адреса, привязанные к клиенту, с фильтрацией разрешенных устройств (камер)
+    // 2. Сразу выполняем бизнес-логику (загрузку объектов/камер) без лишних проверок ролей
     const clientAddresses = await prisma.clients_x_addresses.findMany({
-      where: { user_id: Number(user_id) },
+      where: { user_id },
       include: {
         address: {
           include: {
