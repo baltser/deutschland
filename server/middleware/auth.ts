@@ -38,6 +38,9 @@ export default defineEventHandler(async (event) => {
 
     // 🔥 Сохраняем объект пользователя в контекст запроса!
     // Теперь любой эндпоинт сможет взять его готовым, не вызывая getUserSession заново.
-    event.context.user = session.user
+    event.context.user = {
+      ...session.user,
+      user_id: Number(session.user.user_id)
+    }
   }
 })

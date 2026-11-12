@@ -19,7 +19,7 @@ export const useAdminClientsStore = defineStore('admin-clients', () => {
     pending.value = true
     error.value = null
     try {
-      const data = await $fetch<ClientsListResponse>('/api/admin/users/clients', {
+      const data = await $fetch<ClientsListResponse>('/api/admin/clients', {
         query: {
           page: page.value,
           limit: limit.value,

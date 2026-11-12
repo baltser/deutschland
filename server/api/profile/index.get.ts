@@ -1,27 +1,7 @@
+import { profileService } from '#server/services/profile/profile.service'
 import type { UserProfile } from '#server/types/profile'
 
 export default defineEventHandler(async (event): Promise<UserProfile> => {
-
-  const user = await prisma.users.findUnique({
-    where: { user_id: event.context.user.user_id },
-    select: {
-      user_id: true,
-      user_name: true,
-      phone: true,
-      email: true,
-      email_verified_at: true,
-      avatar_path: true,
-      role_name: true,
-      activated_at: true,
-    }
-  })
-
-  if (!user) {
-    throw createError({
-      statusCode: 404,
-      message: 'Пользователь не найден'
-    })
-  }
-
-  return user
+  const user = event.context.user
+  return await profileService.getProfile(user.user_id)
 })

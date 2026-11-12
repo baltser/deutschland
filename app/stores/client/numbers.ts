@@ -95,7 +95,7 @@ export const useClientNumbersStore = defineStore('clientNumbers', () => {
   const fetchActiveNumbers = async () => {
     loading.value = true
     try {
-      const res = await $fetch<{ active?: GroupedNumberItem[] }>('/api/client/camera-anpr/numbers')
+      const res = await $fetch<{ active?: GroupedNumberItem[] }>('/api/client/passes')
       rawActiveNumbers.value = res.active || []
     } catch (err: unknown) {
       console.error('Не удалось загрузить список номеров', err)
@@ -113,7 +113,7 @@ export const useClientNumbersStore = defineStore('clientNumbers', () => {
   }) => {
     loading.value = true
     try {
-      const res = await $fetch<BatchResponse>('/api/client/camera-anpr/numbers-batch', {
+      const res = await $fetch<BatchResponse>('/api/client/passes/batch', {
         method: 'POST',
         body: data
       })
@@ -148,7 +148,7 @@ export const useClientNumbersStore = defineStore('clientNumbers', () => {
   const revokePass = async (recordIds: (number | string)[]) => {
     try {
       for (const id of recordIds) {
-        await $fetch(`/api/client/camera-anpr/${id}/number`, {
+        await $fetch(`/api/client/passes/${id}`, {
           method: 'DELETE'
         })
       }

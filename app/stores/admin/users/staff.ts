@@ -11,13 +11,13 @@ export const useAdminStaffStore = defineStore('admin-staff', () => {
     pending: staffPending,
     error: staffError,
     refresh: refreshStaff
-  } = useLazyFetch<StaffListResponse>('/api/admin/users/staff')
+  } = useLazyFetch<StaffListResponse>('/api/admin/staff')
 
   const staffList = computed(() => staffResponse.value?.users || [])
 
   async function createStaff(payload: { phone: string; user_name: string; role_name: 'admin' | 'installer' }) {
     try {
-      await $fetch('/api/admin/users', {
+      await $fetch('/api/admin/staff', {
         method: 'POST',
         body: payload
       })

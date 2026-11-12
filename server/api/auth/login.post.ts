@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import bcrypt from 'bcryptjs'
-import type {AuthResponse} from "#server/types/auth.ts";
+import { authService } from '#server/services/auth/auth.service'
+import type { AuthResponse } from '#server/types/auth'
 
 const loginSchema = z.object({
   phone: z.string().min(10, 'Введите корректный номер телефона'),
@@ -9,34 +9,11 @@ const loginSchema = z.object({
 
 export default defineEventHandler(async (event): Promise<AuthResponse> => {
   const body = await readValidatedBody(event, (b) => loginSchema.parse(b))
-  const cleanPhone = body.phone.trim()
 
-  const user = await prisma.users.findUnique({
-    where: { phone: cleanPhone }
-  })
+  // Cравнение хэшей и ошибок — внутри сервиса
+  const sessionUser = await authService.login(body.phone, body.password)
 
-  if (!user || !user.password) {
-    throw createError({
-      statusCode: 401,
-      message: 'Неверный номер телефона или пароль'
-    })
-  }
-
-  const isPasswordValid = await bcrypt.compare(body.password, user.password)
-  if (!isPasswordValid) {
-    throw createError({
-      statusCode: 401,
-      message: 'Неверный номер телефона или пароль'
-    })
-  }
-
-  const sessionUser = {
-    user_id: user.user_id,
-    role_name: user.role_name,
-    user_name: user.user_name || null,
-    avatar_path: user.avatar_path || null
-  }
-
+  // Установка сессии Nitro Auth остается на уровне эндпоинта
   await setUserSession(event, { user: sessionUser })
 
   return {

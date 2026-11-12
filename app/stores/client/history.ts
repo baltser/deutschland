@@ -32,7 +32,7 @@ export const useNumbersHistoryStore = defineStore('numbersHistory', () => {
 
     loading.value = true
     try {
-      const data = await $fetch<{ logs: HistoryLogItem[] }>('/api/client/camera-anpr/numbers-history')
+      const data = await $fetch<{ logs: HistoryLogItem[] }>('/api/client/passes/history')
       rawLogs.value = data?.logs || []
     } catch (error) {
       console.error('Ошибка загрузки истории:', error)

@@ -1,6 +1,5 @@
 import { z } from 'zod'
-import { normalizeAndValidatePhone } from '#server/utils/phone'
-import { prisma } from '#server/utils/prisma'
+import { addressManagementService } from '#server/services/admin/address-management.service'
 import type { AddClientToAddressResponse } from '#server/types/admin'
 
 const addClientSchema = z.object({
@@ -9,11 +8,8 @@ const addClientSchema = z.object({
 })
 
 export default defineEventHandler(async (event): Promise<AddClientToAddressResponse> => {
-
-  const id = getRouterParam(event, 'id')
-  const addressId = Number(id)
-
-  if (isNaN(addressId)) {
+  const id = Number(getRouterParam(event, 'id'))
+  if (isNaN(id)) {
     throw createError({ statusCode: 400, message: 'Некорректный ID адреса' })
   }
 
@@ -27,38 +23,11 @@ export default defineEventHandler(async (event): Promise<AddClientToAddressRespo
     })
   }
 
-  const phone = normalizeAndValidatePhone(parseResult.data.phone)
-  const userName = parseResult.data.user_name?.trim() || 'Клиент'
-
-  let user = await prisma.users.findUnique({
-    where: { phone }
-  })
-
-  if (!user) {
-    user = await prisma.users.create({
-      data: {
-        phone,
-        user_name: userName,
-        password: null,
-        role_name: 'client',
-        activated_at: null
-      }
-    })
-  }
-
-  try {
-    await prisma.clients_x_addresses.create({
-      data: {
-        user_id: user.user_id,
-        address_id: addressId
-      }
-    })
-  } catch (e: unknown) {
-    const err = e as { code?: string }
-    if (err.code !== 'P2002') {
-      throw e
-    }
-  }
+  const user = await addressManagementService.addClientToAddress(
+    id,
+    parseResult.data.phone,
+    parseResult.data.user_name
+  )
 
   return { success: true, user }
 })

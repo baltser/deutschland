@@ -1,6 +1,5 @@
 import { z } from 'zod'
-import { logger } from '#server/utils/logger'
-import { prisma } from '#server/utils/prisma'
+import { emailTemplateService } from '#server/services/admin/email-template.service'
 import type { EmailTemplateUpdateResponse, UpdateEmailTemplateBody } from '#server/types/admin'
 
 const updateSchema = z.object({
@@ -10,9 +9,9 @@ const updateSchema = z.object({
 })
 
 export default defineEventHandler(async (event): Promise<EmailTemplateUpdateResponse> => {
-  const log = logger.withTag('admin:email-templates')
-
+  const user = event.context.user
   const slug = getRouterParam(event, 'slug')
+
   if (!slug) {
     throw createError({
       statusCode: 400,
@@ -30,31 +29,15 @@ export default defineEventHandler(async (event): Promise<EmailTemplateUpdateResp
     })
   }
 
-  const { title, subject, body_html } = parseResult.data
+  const updatedTemplate = await emailTemplateService.updateTemplate(
+    slug,
+    user.user_id,
+    parseResult.data
+  )
 
-  try {
-    const updatedTemplate = await prisma.email_templates.update({
-      where: { slug },
-      data: {
-        title,
-        subject,
-        body_html
-      }
-    })
-
-    log.success(`Шаблон письма "${slug}" успешно обновлен администратором ID: ${event.context.user.user_id}`)
-
-    return {
-      success: true,
-      message: 'Шаблон успешно обновлен',
-      template: updatedTemplate
-    }
-  } catch (err: unknown) {
-    const apiErr = err as { message?: string }
-    log.error(`Ошибка при обновлении шаблона ${slug}:`, { cause: err })
-    throw createError({
-      statusCode: 500,
-      message: apiErr?.message || 'Не удалось обновить шаблон в базе данных'
-    })
+  return {
+    success: true,
+    message: 'Шаблон успешно обновлен',
+    template: updatedTemplate
   }
 })

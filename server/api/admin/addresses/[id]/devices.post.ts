@@ -1,9 +1,17 @@
-import { prisma } from '#server/utils/prisma'
+import { deviceService } from '#server/services/devices/device.service'
 import type { CreateDeviceResponse } from '#server/types/admin'
 
 export default defineEventHandler(async (event): Promise<CreateDeviceResponse> => {
+  const user = event.context.user
+  const idParam = getRouterParam(event, 'id')
 
-  const idParam = event.context.params?.id
+  if (!idParam) {
+    throw createError({
+      statusCode: 400,
+      message: 'Не указан ID адреса',
+    })
+  }
+
   const addressId = Number(idParam)
 
   if (isNaN(addressId)) {
@@ -14,48 +22,15 @@ export default defineEventHandler(async (event): Promise<CreateDeviceResponse> =
   }
 
   const body = await readBody(event)
-  const { device_name, device_type, ip, port, login, password } = body
 
-  if (!device_name || !device_name.trim()) {
-    throw createError({
-      statusCode: 400,
-      message: 'Укажите название устройства',
-    })
-  }
+  const newDevice = await deviceService.createDeviceForAddress(
+    addressId,
+    user.user_id,
+    body
+  )
 
-  const address = await prisma.addresses.findUnique({
-    where: { address_id: addressId },
-  })
-
-  if (!address) {
-    throw createError({
-      statusCode: 404,
-      message: 'Адрес не найден',
-    })
-  }
-
-  try {
-    const newDevice = await prisma.devices.create({
-      data: {
-        device_name: device_name.trim(),
-        device_type: device_type || 'CAMERA',
-        ip: ip ? ip.trim() : null,
-        port: port ? Number(port) : null,
-        login: login ? login.trim() : null,
-        password: password ? password.trim() : null,
-        address_id: addressId,
-      },
-    })
-
-    return {
-      success: true,
-      device: newDevice,
-    }
-  } catch (err: unknown) {
-    console.error('Ошибка при создании устройства:', err)
-    throw createError({
-      statusCode: 500,
-      message: 'Не удалось сохранить устройство в базу данных',
-    })
+  return {
+    success: true,
+    device: newDevice,
   }
 })

@@ -13,7 +13,18 @@ export function useDeviceStatus() {
   const checkDeviceOnline = async (deviceId: number): Promise<boolean> => {
     try {
       const response = await $fetch<DevicePingResponse>(`/api/devices/${deviceId}/ping`)
-      return response?.status === 200 && (response?.data?.includes('Status=0') || response?.success === true)
+
+      if (response?.status !== 200 || !response?.data) {
+        return false
+      }
+
+      // Если это Beward, он должен вернуть Status=0
+      if (response.data.includes('Status=')) {
+        return response.data.includes('Status=0')
+      }
+
+      // Если это Dahua (или другой вендор), успешный ответ 200 с данными — уже признак сети
+      return true
     } catch {
       return false
     }

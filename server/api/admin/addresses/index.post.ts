@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { prisma } from '#server/utils/prisma'
+import { addressManagementService } from '#server/services/admin/address-management.service'
 import type { CreateAddressResponse } from '#server/types/admin'
 
 const createAddressSchema = z.object({
@@ -7,27 +7,16 @@ const createAddressSchema = z.object({
 })
 
 export default defineEventHandler(async (event): Promise<CreateAddressResponse> => {
-
+  const user = event.context.user
   const body = await readValidatedBody(event, createAddressSchema.parse)
-  const { address_name } = body
 
-  try {
-    const newAddress = await prisma.addresses.create({
-      data: { address_name }
-    })
+  const newAddress = await addressManagementService.createAddress(
+    body.address_name,
+    user.user_id
+  )
 
-    return {
-      success: true,
-      address: newAddress
-    }
-  } catch (e: unknown) {
-    const prismaErr = e as { code?: string }
-    if (prismaErr.code === 'P2002') {
-      throw createError({
-        statusCode: 400,
-        message: 'Такой адрес уже существует в системе'
-      })
-    }
-    throw e
+  return {
+    success: true,
+    address: newAddress
   }
 })

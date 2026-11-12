@@ -21,7 +21,7 @@ export const useAdminUserMutationsStore = defineStore('admin-user-mutations', ()
 
       // 1. Если переданы текстовые поля (имя, роль), отправляем их через PATCH
       if (payload.user_name !== undefined || payload.role_name !== undefined) {
-        const response = await $fetch<{ success: boolean; user: StaffUser & ClientUser }>(`/api/admin/users/${userId}`, {
+        const response = await $fetch<{ success: boolean; user: StaffUser & ClientUser }>(`/api/admin/staff/${userId}`, {
           method: 'PATCH',
           body: {
             user_name: payload.user_name,
