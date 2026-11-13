@@ -7,19 +7,13 @@ export const addressRepository = {
   async findAllWithDevicesAndClients() {
     return prisma.addresses.findMany({
       include: {
-        clients: {
-          include: {
-            user: {
-              select: {
-                user_id: true,
-                user_name: true,
-                phone: true,
-                email: true
-              }
-            }
+        devices: true,
+        _count: {
+          select: {
+            clients: true,
+            devices: true
           }
-        },
-        devices: true
+        }
       },
       orderBy: { address_id: 'desc' }
     })

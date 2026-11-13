@@ -42,9 +42,14 @@ export interface AddressClientRelation {
   user: AddressClientUser
 }
 
-/** Адрес со списком клиентов (для общего списка /api/admin/addresses) */
+/** Адрес со списком клиентов и счетчиками (для общего списка /api/admin/addresses) */
 export type AddressWithClients = addresses & {
-  clients: AddressClientRelation[]
+  clients?: AddressClientRelation[]
+  devices?: devices[]
+  _count?: {
+    clients: number
+    devices: number
+  }
 }
 
 /** Полная структура адреса со всеми привязанными клиентами и устройствами */
@@ -53,6 +58,10 @@ export type AddressWithClientsAndDevices = addresses & {
     user: AdminUser
   }[]
   devices: devices[]
+  _count?: {
+    clients: number
+    devices: number
+  }
 }
 
 
@@ -74,6 +83,12 @@ export interface UpdateUserBody {
 export interface ClientsListResponse {
   success: boolean
   clients: AdminClient[]
+  pagination?: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
 }
 
 export interface StaffListResponse {
@@ -114,6 +129,7 @@ export interface AddClientToAddressResponse {
   success: boolean
   user: users
 }
+
 export interface EmailTemplatesListResponse {
   success: boolean
   templates: email_templates[]

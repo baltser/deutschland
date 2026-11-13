@@ -9,17 +9,18 @@ useSeoMeta({
 })
 
 const store = useAdminAddressesStore()
+// Используем storeToRefs для правильного сохранения реактивности стора в Vue/Pinia
+const { addresses, loading: pending } = storeToRefs(store)
 
 const newAddressText = ref('')
 const isSubmitting = ref(false)
 
-// Автоматически загружаем адреса, если список пуст
-if (store.addresses.length === 0 && !store.loading) {
-  store.fetchAddresses()
-}
-
-const addresses = computed(() => store.addresses)
-const pending = computed(() => store.loading)
+// 💡 Загружаем адреса через onMounted при каждом открытии страницы
+onMounted(async () => {
+  if (addresses.value.length === 0) {
+    await store.fetchAddresses()
+  }
+})
 
 // Функция добавления с очисткой поля ввода
 async function handleAddAddress() {

@@ -1,6 +1,6 @@
-import { staffManagementService } from '#server/services/admin/staff-management.service'
 import type { UserRole } from '@prisma/client'
-import type { AdminUserUpdateResponse, UpdateUserBody } from '#server/types/admin'
+import type { AdminUserUpdateResponse, UpdateUserBody } from '#server/types/admin.ts'
+import {userManagementService} from "#server/services/admin/user-management.service.ts";
 
 export default defineEventHandler(async (event): Promise<AdminUserUpdateResponse> => {
   const currentUser = event.context.user
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event): Promise<AdminUserUpdateResponse
     updateData.avatar_path = body.avatar_path
   }
 
-  const updatedUser = await staffManagementService.updateStaffUser(
+  const updatedUser = await userManagementService.updateUser(
     currentUser.user_id,
     userId,
     updateData

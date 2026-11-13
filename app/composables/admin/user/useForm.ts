@@ -1,5 +1,7 @@
 // import type { UserEditTarget } from '~/types/user'
 import { useAdminUserMutationsStore } from '~/stores/admin/users/mutations'
+import { useAdminStaffStore } from '~/stores/admin/users/staff'
+import { useAdminClientsStore } from '~/stores/admin/users/clients'
 import type { StaffUser, ClientUser, ClientAddressRelation, UserRole } from '~/types/user'
 
 export type UserEditTarget = (StaffUser | ClientUser) & {
@@ -9,6 +11,9 @@ export type UserEditTarget = (StaffUser | ClientUser) & {
 
 export function useUserEditForm(getTargetUser: () => UserEditTarget | null, onClose: () => void) {
   const mutationsStore = useAdminUserMutationsStore()
+  const staffStore = useAdminStaffStore()
+  const clientsStore = useAdminClientsStore()
+
   const isSaving = ref(false)
 
   const form = reactive({
@@ -110,6 +115,35 @@ export function useUserEditForm(getTargetUser: () => UserEditTarget | null, onCl
     }
   }
 
+  // 💡 Метод удаления пользователя (универсальный для клиента и сотрудника)
+  async function remove() {
+    if (!user.value || isSaving.value) return false
+
+    const userName = form.user_name || user.value.user_name || user.value.phone
+    const userTypeLabel = isClient.value ? 'клиента' : 'сотрудника'
+
+    if (!confirm(`Вы действительно хотите удалить ${userTypeLabel} ${userName}?`)) {
+      return false
+    }
+
+    isSaving.value = true
+    try {
+      if (isClient.value) {
+        await clientsStore.deleteClient(user.value.user_id)
+      } else {
+        await staffStore.deleteStaff(user.value.user_id)
+      }
+
+      onClose()
+      return true
+    } catch (err) {
+      console.error('Ошибка удаления пользователя:', err)
+      return false
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   onUnmounted(() => {
     revokePreview()
   })
@@ -122,6 +156,7 @@ export function useUserEditForm(getTargetUser: () => UserEditTarget | null, onCl
     hasChanges,
     isSaving,
     handleAvatarSelected,
-    save
+    save,
+    remove
   }
 }

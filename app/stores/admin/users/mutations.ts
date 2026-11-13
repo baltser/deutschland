@@ -1,4 +1,3 @@
-// stores/adminUserMutations.ts
 import { defineStore } from 'pinia'
 import { getErrorMessage } from '~/types/error'
 import { useAdminClientsStore } from './clients'
@@ -6,12 +5,10 @@ import { useAdminStaffStore } from './staff'
 import type { ClientUser, StaffUser } from '~/types/user'
 
 export const useAdminUserMutationsStore = defineStore('admin-user-mutations', () => {
-  // Подключаем наш стандартизированный композабл для уведомлений
   const { showSuccess, showError } = useToastNotifications()
   const clientsStore = useAdminClientsStore()
   const staffStore = useAdminStaffStore()
 
-  // Принимаем payload, включая опциональный файл аватара
   async function updateUser(
     userId: number,
     payload: { user_name?: string; role_name?: string; avatarFile?: File | null }
@@ -19,9 +16,9 @@ export const useAdminUserMutationsStore = defineStore('admin-user-mutations', ()
     try {
       let updatedUserObj: Partial<StaffUser & ClientUser> | null = null
 
-      // 1. Если переданы текстовые поля (имя, роль), отправляем их через PATCH
+      // 1. Обновляем текстовые поля через универсальный эндпоинт пользователей
       if (payload.user_name !== undefined || payload.role_name !== undefined) {
-        const response = await $fetch<{ success: boolean; user: StaffUser & ClientUser }>(`/api/admin/staff/${userId}`, {
+        const response = await $fetch<{ success: boolean; user: StaffUser & ClientUser }>(`/api/admin/user/${userId}`, {
           method: 'PATCH',
           body: {
             user_name: payload.user_name,
@@ -31,7 +28,7 @@ export const useAdminUserMutationsStore = defineStore('admin-user-mutations', ()
         updatedUserObj = response.user
       }
 
-      // 2. Если передан файл аватара, отправляем его на эндпоинт
+      // 2. Если передан файл аватара, отправляем его
       if (payload.avatarFile) {
         const formData = new FormData()
         formData.append('avatar', payload.avatarFile)
@@ -41,19 +38,15 @@ export const useAdminUserMutationsStore = defineStore('admin-user-mutations', ()
           body: formData
         })
 
-        // Подтягиваем свежий путь к аватару
         if (avatarResponse.success && avatarResponse.avatarUrl) {
-          if (!updatedUserObj) {
-            updatedUserObj = {}
-          }
-          // Очищаем префикс, чтобы в объекте хранился чистый относительный путь бакета
+          if (!updatedUserObj) updatedUserObj = {}
           updatedUserObj.avatar_path = avatarResponse.avatarUrl.replace(/^\/api\/files\//, '')
         }
       }
 
       showSuccess('Успешно', 'Данные пользователя обновлены')
 
-      // 3. Локально обновляем данные в списке клиентов, чтобы таблица сразу показала изменения без перезагрузки
+      // 3. Синхронизируем локальный список клиентов
       const clientIndex = clientsStore.list.findIndex(c => c.user_id === userId)
       if (clientIndex !== -1 && updatedUserObj) {
         clientsStore.list[clientIndex] = {

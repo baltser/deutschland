@@ -3,7 +3,6 @@ import type { StaffListResponse } from '~/types/admin'
 import { getErrorMessage } from '~/types/error'
 
 export const useAdminStaffStore = defineStore('admin-staff', () => {
-
   const { showSuccess, showError } = useToastNotifications()
 
   const {
@@ -23,11 +22,27 @@ export const useAdminStaffStore = defineStore('admin-staff', () => {
       })
 
       showSuccess('Успешно', 'Сотрудник успешно добавлен в систему')
-
       await refreshStaff()
       return true
     } catch (err: unknown) {
       const errorMsg = getErrorMessage(err, 'Не удалось создать сотрудника')
+      showError('Ошибка', errorMsg)
+      throw err
+    }
+  }
+
+  // 💡 Удаление через общий роут пользователей
+  async function deleteStaff(userId: number | string) {
+    try {
+      await $fetch(`/api/admin/user/${userId}`, {
+        method: 'DELETE'
+      })
+
+      showSuccess('Успешно', 'Сотрудник удален из системы')
+      await refreshStaff()
+      return true
+    } catch (err: unknown) {
+      const errorMsg = getErrorMessage(err, 'Не удалось удалить сотрудника')
       showError('Ошибка', errorMsg)
       throw err
     }
@@ -38,6 +53,7 @@ export const useAdminStaffStore = defineStore('admin-staff', () => {
     staffPending,
     staffError,
     refreshStaff,
-    createStaff
+    createStaff,
+    deleteStaff
   }
 })

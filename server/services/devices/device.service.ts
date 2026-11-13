@@ -2,7 +2,7 @@ import { addressRepository } from '#server/repositories/prisma/address.repositor
 import { deviceRepository } from '#server/repositories/prisma/device.repository'
 import { callDeviceEndpoint } from '#server/utils/devices/device-api.ts'
 import { logger } from '#server/utils/logger'
-import type { DeviceType } from '@prisma/client'
+import type { Prisma, DeviceType} from '@prisma/client';
 import {detectDeviceVendor} from "#server/utils/devices/device-detector.ts";
 
 const log = logger.withTag('services:device')
@@ -47,7 +47,7 @@ export const deviceService = {
         login: data.login ? data.login.trim() : null,
         password: data.password ? data.password.trim() : null,
         address: {
-          connect: { address_id: addressId }
+          connect: {address_id: addressId}
         }
       })
 
@@ -58,6 +58,99 @@ export const deviceService = {
       throw createError({
         statusCode: 500,
         message: 'Не удалось сохранить устройство в базу данных',
+      })
+    }
+  },
+  /** Частичное обновление устройства */
+  async updateDevice(
+    deviceId: number,
+    actorUserId: number,
+    data: {
+      device_name?: string
+      device_type?: string
+      ip?: string | null
+      port?: number | null
+      login?: string | null
+      password?: string | null
+    }
+  ) {
+    // 1. Проверяем, существует ли устройство
+    const existingDevice = await deviceRepository.findById(deviceId)
+    if (!existingDevice) {
+      throw createError({
+        statusCode: 404,
+        message: 'Устройство не найдено',
+      })
+    }
+
+    try {
+      // 2. Подготавливаем данные для апдейта (очищаем от лишних пробелов, если они есть)
+      const updateData: Prisma.devicesUpdateInput = {}
+
+      if (data.device_name !== undefined) {
+        if (!data.device_name.trim()) {
+          throw createError({statusCode: 400, message: 'Название устройства не может быть пустым'})
+        }
+        updateData.device_name = data.device_name.trim()
+      }
+
+      if (data.device_type !== undefined) {
+        updateData.device_type = data.device_type as DeviceType
+      }
+
+      if (data.ip !== undefined) {
+        updateData.ip = data.ip ? data.ip.trim() : null
+      }
+
+      if (data.port !== undefined) {
+        updateData.port = data.port ? Number(data.port) : null
+      }
+
+      if (data.login !== undefined) {
+        updateData.login = data.login ? data.login.trim() : null
+      }
+
+      // Пароль обновляем только если он передан и не пустой (либо явно сбрасывается)
+      if (data.password !== undefined) {
+        updateData.password = data.password ? data.password.trim() : null
+      }
+
+      // 3. Вызываем репозиторий
+      const updatedDevice = await deviceRepository.update(deviceId, updateData)
+
+      log.success(`Пользователь #${actorUserId} обновил устройство #${deviceId} ("${updatedDevice.device_name}")`)
+      return updatedDevice
+    } catch (err: unknown) {
+      if (typeof err === 'object' && err !== null && 'statusCode' in err) {
+        throw err
+      }
+      log.error(`Ошибка при обновлении устройства #${deviceId}:`, err)
+      throw createError({
+        statusCode: 500,
+        message: 'Не удалось обновить устройство в базе данных',
+      })
+    }
+  },
+
+  /** Удаление устройства */
+  async deleteDevice(deviceId: number, actorUserId: number) {
+    const existingDevice = await deviceRepository.findById(deviceId)
+    if (!existingDevice) {
+      throw createError({
+        statusCode: 404,
+        message: 'Устройство не найдено',
+      })
+    }
+
+    try {
+      await deviceRepository.delete(deviceId)
+      log.success(`Пользователь #${actorUserId} удалил устройство #${deviceId} ("${existingDevice.device_name}")`)
+      return {success: true}
+    } catch (err: unknown) {
+      log.error(`Ошибка при удалении устройства #${deviceId}:`, err)
+      throw createError({
+        statusCode: 500,
+        message: 'Не удалось удалить устройство из базы данных',
       })
     }
   },

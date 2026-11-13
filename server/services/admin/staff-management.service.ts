@@ -5,9 +5,7 @@ import type { UserRole } from '@prisma/client'
 const log = logger.withTag('services:admin:staff')
 
 export const staffManagementService = {
-  /**
-   * Получение списка всех сотрудников (все, у кого роль не 'client')
-   */
+  /** Получение списка всех сотрудников (все, у кого роль не 'client') */
   async getStaffList() {
     try {
       const staff = await userRepository.findUserList()
@@ -23,9 +21,7 @@ export const staffManagementService = {
     }
   },
 
-  /**
-   * Создание нового сотрудника или повышение существующего клиента до сотрудника
-   */
+  /** Создание нового сотрудника или повышение существующего клиента до сотрудника */
   async createOrPromoteStaff(adminUserId: number, rawPhone: string, roleName: UserRole, rawUserName?: string | null) {
     const phone = normalizeAndValidatePhone(rawPhone)
     const userName = rawUserName?.trim() || undefined
@@ -71,33 +67,6 @@ export const staffManagementService = {
       user_name: newUser.user_name,
       phone: newUser.phone,
       role_name: newUser.role_name
-    }
-  },
-
-  /**
-   * Обновление данных сотрудника администратором
-   */
-  async updateStaffUser(adminUserId: number, userId: number, updateData: { user_name?: string; role_name?: UserRole; avatar_path?: string | null }) {
-    try {
-      const updatedUser = await userRepository.update(userId, updateData, {
-        user_id: true,
-        user_name: true,
-        email: true,
-        phone: true,
-        role_name: true,
-        avatar_path: true,
-        activated_at: true
-      })
-
-      log.success(`Администратор #${adminUserId} обновил данные пользователя ID: ${userId}`)
-      return updatedUser
-    } catch (err: unknown) {
-      log.error(`Не удалось обновить пользователя ID: ${userId}`, { cause: err })
-      throw createError({
-        statusCode: 500,
-        message: 'Ошибка сервера при обновлении данных пользователя',
-        cause: err
-      })
     }
   }
 }

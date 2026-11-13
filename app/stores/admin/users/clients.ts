@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia'
 import type { ClientsListResponse } from '~/types/admin'
 import { getErrorMessage } from '~/types/error'
-import type {ClientUser} from "~/types/user.ts";
+import type { ClientUser } from '~/types/user.ts'
 
 export const useAdminClientsStore = defineStore('admin-clients', () => {
+  const { showSuccess, showError } = useToastNotifications()
+
   const page = ref(1)
   const limit = ref(20)
   const search = ref('')
@@ -55,8 +57,25 @@ export const useAdminClientsStore = defineStore('admin-clients', () => {
     await fetchClients()
   }
 
+  // 💡 Удаление через общий роут пользователей
+  const deleteClient = async (userId: number | string) => {
+    try {
+      await $fetch(`/api/admin/user/${userId}`, {
+        method: 'DELETE'
+      })
+
+      showSuccess('Успешно', 'Клиент удален из системы')
+      await fetchClients()
+      return true
+    } catch (err: unknown) {
+      const errorMsg = getErrorMessage(err, 'Не удалось удалить клиента')
+      showError('Ошибка', errorMsg)
+      throw err
+    }
+  }
+
   if (import.meta.client) {
-   void fetchClients()
+    void fetchClients()
   }
 
   return {
@@ -73,6 +92,7 @@ export const useAdminClientsStore = defineStore('admin-clients', () => {
     setSearch,
     setAddressFilter,
     fetchClients,
-    refresh: fetchClients
+    refresh: fetchClients,
+    deleteClient
   }
 })

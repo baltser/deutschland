@@ -22,9 +22,18 @@ defineEmits<{
       Загрузка адресов...
     </div>
 
-    <div v-else-if="addresses.length === 0" class="p-12 text-center text-neutral-400 text-sm">
-      <UIcon name="i-lucide-map-pin-off" class="w-10 h-10 mx-auto mb-2 opacity-40" />
-      Список адресов пуст. Добавьте первый адрес с помощью формы выше.
+    <div v-else-if="addresses.length === 0" class="py-16 px-6 text-center flex flex-col items-center justify-center">
+      <div class="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-4 shadow-xs">
+        <UIcon name="i-lucide-map-pin-plus" class="w-7 h-7" />
+      </div>
+
+      <h3 class="text-sm sm:text-base font-semibold text-neutral-900 dark:text-white">
+        Пока нет ни одного объекта
+      </h3>
+
+      <p class="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 max-w-sm mt-1.5 leading-relaxed">
+        Список адресов пуст. Введите название улицы и номер дома в форму выше, чтобы создать первый объект и привязать к нему жильцов.
+      </p>
     </div>
 
     <div v-else class="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -43,11 +52,27 @@ defineEmits<{
             <p class="text-xs text-neutral-400 mt-0.5">ID объекта: #{{ item.address_id }}</p>
           </div>
         </div>
-
-        <div class="flex items-center gap-2 self-end sm:self-center">
-          <span class="text-xs px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
-            Жильцов: {{ item.clients?.length || 0 }}
+        <div class="flex items-center gap-2 self-end sm:self-center flex-wrap justify-end">
+          <!-- Жильцы (Зеленый акцент) -->
+          <span class="text-xs px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5">
+            <UIcon name="mdi:account-group" class="w-3.5 h-3.5" />
+            <span>Жильцы: {{ item._count?.clients || 0 }}</span>
           </span>
+
+          <!-- Группа оборудования: Камеры и Панели -->
+          <div class="flex items-center gap-1.5">
+            <!-- Камеры -->
+            <span class="text-xs px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 font-medium flex items-center gap-1" title="Камеры видеонаблюдения">
+              <UIcon name="lucide:cctv" class="w-3.5 h-3.5" />
+              <span>{{ item.devices?.filter(d => d.device_type === 'CAMERA').length || 0 }}</span>
+            </span>
+
+            <!-- Вызывные панели -->
+            <span class="text-xs px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1" title="Вызывные панели">
+              <UIcon name="lucide:grid-3x3" class="w-3.5 h-3.5" />
+              <span>{{ item.devices?.filter(d => d.device_type === 'PANEL').length || 0 }}</span>
+            </span>
+          </div>
         </div>
       </div>
     </div>

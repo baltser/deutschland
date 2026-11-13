@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ClientAddressList from '~/components/client/address/List.vue'
 import UserAvatar from '~/components/user/UserAvatar.vue'
-import type { UserEditTarget } from '~/composables/admin/user/useForm.ts' // ********* ИСПРАВИТЬ !!!
+import type { UserEditTarget } from '~/composables/admin/user/useForm.ts'
 import { useUserEditForm } from '~/composables/admin/user/useForm.ts'
 
 const props = defineProps<{
@@ -20,7 +20,7 @@ const isOpen = computed({
   set: (val) => emit('update:modelValue', val)
 })
 
-// Подключаем всю инкапсулированную логику формы и стора мутаций
+// Подключаем всю инкапсулированную логику формы, сохранения и удаления
 const {
   form,
   isClient,
@@ -29,7 +29,8 @@ const {
   hasChanges,
   isSaving: isFormSaving,
   handleAvatarSelected,
-  save
+  save,
+  remove // 💡 Достали метод удаления из правильного композабла
 } = useUserEditForm(() => props.user, () => { isOpen.value = false })
 
 const staffRoleOptions = [
@@ -98,12 +99,27 @@ const staffRoleOptions = [
 
     <template #footer>
       <div class="flex items-center justify-between w-full">
-        <span v-if="hasChanges" class="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 font-medium">
-          <UIcon name="i-lucide-alert-circle" class="w-3.5 h-3.5" />
-          Есть несохраненные изменения
-        </span>
-        <span v-else />
+        <!-- Левая часть: Статус несохраненных изменений + Кнопка удаления -->
+        <div class="flex items-center gap-3">
+          <!-- 💡 Кнопка удаления юзера -->
+          <UButton
+            v-if="user"
+            color="error"
+            variant="ghost"
+            size="sm"
+            icon="i-lucide-trash-2"
+            :disabled="isFormSaving"
+            @click="remove"
+          >
+            Удалить
+          </UButton>
+          <span v-if="hasChanges" class="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 font-medium">
+            <UIcon name="i-lucide-alert-circle" class="w-3.5 h-3.5" />
+            Есть несохраненные изменения
+          </span>
+        </div>
 
+        <!-- Правая часть: Отмена / Сохранить -->
         <div class="flex items-center gap-2">
           <UButton
             color="neutral"

@@ -58,7 +58,7 @@ export async function getDahuaSession(deviceId: number) {
   }
 }
 
-/** Добавление пропуска на Dahua с полным логированием ответа */
+/** Добавление пропуска на Dahua */
 export async function addDahuaPass(
   deviceId: number,
   carNumber: string,
@@ -77,7 +77,7 @@ export async function addDahuaPass(
   }
 
   try {
-    // 1. Фабрика
+    // 1. Создание фабрики для TrafficRedList
     const factoryRes = await fetch(url, {
       method: 'POST',
       headers,
@@ -90,9 +90,12 @@ export async function addDahuaPass(
     })
     const factoryData = await factoryRes.json()
     const objId = factoryData?.result
-    if (objId === undefined) return { success: false, error: 'Ошибка фабрики Dahua' }
 
-    // 2. Вставка
+    if (objId === undefined) {
+      return { success: false, error: 'Ошибка фабрики Dahua' }
+    }
+
+    // 2. Вставка записи
     const insertRes = await fetch(url, {
       method: 'POST',
       headers,
@@ -116,10 +119,7 @@ export async function addDahuaPass(
     })
     const insertData = await insertRes.json()
 
-    // 💡 Пишем в системный логгер, чтобы точно увидеть JSON ответа камеры при вставке
-    log.info(`[Dahua #${deviceId}] РЕЗУЛЬТАТ ВСТАВКИ (RAW):`, { insertData: JSON.stringify(insertData) })
-
-    // 3. Уничтожение объекта фабрики
+    // 3. Обязательное уничтожение объекта фабрики
     await fetch(url, {
       method: 'POST',
       headers,
@@ -136,24 +136,14 @@ export async function addDahuaPass(
       return { success: false, error: insertData.error.message || 'Ошибка вставки на Dahua' }
     }
 
-    // 💡 Исправленное извлечение recno (сначала проверяем params, где камера реально отдает recno)
-    const resParams = insertData?.params
-    const resObj = insertData?.result
-    let recno: number | string | undefined = undefined
+    // Точное извлечение recno из params
+    const recno = insertData?.params?.recno
 
-    if (typeof resParams === 'object' && resParams !== null) {
-      recno = resParams.recno ?? resParams.RecNo ?? resParams.ID ?? resParams.id
+    if (recno === undefined) {
+      log.warn(`[Dahua #${deviceId}] Запись добавлена, но камера не вернула recno в params:`, { insertData })
     }
 
-    if (recno === undefined && typeof resObj === 'object' && resObj !== null) {
-      recno = resObj.RecNo ?? resObj.recno ?? resObj.ID ?? resObj.id ?? resObj.Index ?? resObj.index
-    }
-
-    if (recno === undefined && typeof resObj !== 'boolean') {
-      recno = resObj
-    }
-
-    log.info(`[Dahua #${deviceId}] Распознанный recno для номера ${carNumber}: ${recno}`, { recno, type: typeof recno })
+    log.info(`[Dahua #${deviceId}] Успешно добавлен номер ${carNumber}, получен recno: ${recno}`)
 
     return { success: true, recno }
   } catch (err: unknown) {
@@ -163,7 +153,7 @@ export async function addDahuaPass(
   }
 }
 
-/** Удаление пропуска с Dahua по recno с логированием ответа */
+/** Удаление пропуска с Dahua по recno */
 export async function removeDahuaPass(deviceId: number, recno: number | string): Promise<{ success: boolean; error?: string }> {
   const session = await getDahuaSession(deviceId)
   if (!session) return { success: false, error: 'Не удалось получить сессию Dahua' }
@@ -176,7 +166,7 @@ export async function removeDahuaPass(deviceId: number, recno: number | string):
   }
 
   try {
-    // 1. Фабрика
+    // 1. Создание фабрики для удаления
     const factoryRes = await fetch(url, {
       method: 'POST',
       headers,
@@ -189,11 +179,12 @@ export async function removeDahuaPass(deviceId: number, recno: number | string):
     })
     const factoryData = await factoryRes.json()
     const objId = factoryData?.result
-    if (objId === undefined) return { success: false, error: 'Ошибка фабрики Dahua при удалении' }
 
-    log.info(`[Dahua #${deviceId}] Отправка запроса удаления для recno: ${recno} (тип: ${typeof recno})`)
+    if (objId === undefined) {
+      return { success: false, error: 'Ошибка фабрики Dahua при удалении' }
+    }
 
-    // 2. Удаление по recno (принудительно приводим к Number)
+    // 2. Удаление записи по точному recno (как в дампе Burp Suite)
     const removeRes = await fetch(url, {
       method: 'POST',
       headers,
@@ -207,10 +198,7 @@ export async function removeDahuaPass(deviceId: number, recno: number | string):
     })
     const removeData = await removeRes.json()
 
-    // 💡 Логируем ответ камеры на удаление
-    log.info(`[Dahua #${deviceId}] РЕЗУЛЬТАТ УДАЛЕНИЯ (RAW):`, { removeData: JSON.stringify(removeData) })
-
-    // 3. Уничтожение объекта
+    // 3. Уничтожение объекта фабрики
     await fetch(url, {
       method: 'POST',
       headers,
@@ -224,10 +212,11 @@ export async function removeDahuaPass(deviceId: number, recno: number | string):
     })
 
     if (removeData.error) {
-      log.error(`[Dahua #${deviceId}] Камера вернула ошибку при удалении: ${removeData.error}`)
+      log.error(`[Dahua #${deviceId}] Камера вернула ошибку при удалении:`, removeData.error)
       return { success: false, error: removeData.error.message || 'Ошибка удаления на Dahua' }
     }
 
+    log.info(`[Dahua #${deviceId}] Успешно удалена запись с recno: ${recno}`)
     return { success: true }
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err)

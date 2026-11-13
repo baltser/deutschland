@@ -2,7 +2,6 @@ import { userRepository, type FindClientsParams } from '#server/repositories/pri
 
 export const clientManagementService = {
   /** Получение списка клиентов с поддержкой пагинации, поиска и фильтрации по адресу */
-
   async getClientsPaginated(query: FindClientsParams) {
     const page = Number(query.page) || 1
     const limit = Number(query.limit) || 20

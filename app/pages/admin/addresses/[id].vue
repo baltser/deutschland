@@ -14,12 +14,12 @@ const clientPhone = ref('')
 const clientName = ref('')
 const isAddingClient = ref(false)
 
-// Загружаем данные при монтировании
+// Загружаем адрес (стор сам внутри себя подтянет и первую страницу жильцов)
 onMounted(async () => {
   await addressStore.fetchAddressById(addressId)
 })
 
-// Функция обновления (передаем в дочерние компоненты)
+// Функция обновления
 const refresh = async () => {
   await addressStore.fetchAddressById(addressId)
 }
@@ -37,8 +37,7 @@ async function handleAddClient() {
 
     clientPhone.value = ''
     clientName.value = ''
-  } catch  {
-    // Ошибка уже обработана и показана через toast в сторе
+  } catch {
     console.log("Ошибка уже обработана и показана через toast в сторе")
   } finally {
     isAddingClient.value = false
@@ -85,12 +84,11 @@ useSeoMeta({
 
     <template v-else>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Карточка клиентов -->
+        <!-- Карточка клиентов (теперь чистая, без проброса массивов жильцов!) -->
         <AdminAddressesClientsCard
           v-model:client-name="clientName"
           v-model:client-phone="clientPhone"
           :address-id="addressId"
-          :clients="address?.clients || []"
           :is-adding="isAddingClient"
           @add="handleAddClient"
           @refresh="refresh"
