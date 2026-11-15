@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-
 export interface Device {
   device_id: number
   device_name: string
@@ -17,39 +15,41 @@ const emit = defineEmits<{
   toggleDevice: [deviceId: number]
 }>()
 
-// Сортируем устройства по device_id слева направо (по возрастанию),
-// чтобы порядок строго совпадал с историей и таблицей аудита.
+// Сортируем устройства по device_id по возрастанию (слева направо)
 const sortedDevices = computed(() => {
   if (!props.devices) return []
   return [...props.devices].sort((a, b) => a.device_id - b.device_id)
 })
 
-// Подключаем твой компактный composable
+// Подключаем composable для проверки статусов
 const { deviceStatuses, isChecking, checkDevices } = useDeviceStatus()
 let pollInterval: NodeJS.Timeout | null = null
 
-// Функция обновления статусов с автовыбором/снятием
+// Флаг, чтобы автовыбор по умолчанию происходил только 1 раз при монтировании
+const hasInitialized = ref(false)
+
 const updateStatuses = async () => {
   if (!props.devices || !props.devices.length) return
 
   await checkDevices(props.devices)
 
-  // Синхронизируем выбор с актуальным сетевым состоянием
-  props.devices.forEach((device) => {
-    const isOnline = deviceStatuses.value[device.device_id]
-    const isSelected = props.selectedDeviceIds.includes(device.device_id)
+  // Синхронизируем выбор ТОЛЬКО при первом запуске (инициализации)
+  if (!hasInitialized.value) {
+    props.devices.forEach((device) => {
+      const isOnline = deviceStatuses.value[device.device_id]
+      const isSelected = props.selectedDeviceIds.includes(device.device_id)
 
-    if (isOnline === true && !isSelected) {
-      emit('toggleDevice', device.device_id)
-    } else if (isOnline === false && isSelected) {
-      emit('toggleDevice', device.device_id)
-    }
-  })
+      if (isOnline === true && !isSelected) {
+        emit('toggleDevice', device.device_id)
+      }
+    })
+    hasInitialized.value = true
+  }
 }
 
 onMounted(() => {
   updateStatuses()
-  // Периодический опрос каждые 40 секунд
+  // Периодический опрос статусов каждые 40 секунд (теперь только пинг, не трогая выбор юзера)
   pollInterval = setInterval(updateStatuses, 40000)
 })
 
@@ -59,7 +59,7 @@ onUnmounted(() => {
 
 const handleDeviceClick = (deviceId: number) => {
   const isOnline = deviceStatuses.value[deviceId]
-  if (isOnline === false) return
+  if (isOnline === false) return // Заблокировано для оффлайн оборудования
   emit('toggleDevice', deviceId)
 }
 </script>
@@ -68,10 +68,10 @@ const handleDeviceClick = (deviceId: number) => {
   <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
     <!-- Заголовок и лоадер -->
     <span class="text-[11px] font-bold uppercase tracking-wider text-slate-800 dark:text-neutral-200 flex items-center gap-1.5 whitespace-nowrap">
-    <span class="w-1 h-3 bg-primary-500 rounded-full inline-block" />
-    <span>Куда выписать пропуск:</span>
-    <UIcon v-if="isChecking" name="i-lucide-loader-2" class="w-3.5 h-3.5 animate-spin text-primary-500" />
-  </span>
+      <span class="w-1 h-3 bg-primary-500 rounded-full inline-block" />
+      <span>Куда выписать пропуск:</span>
+      <UIcon v-if="isChecking" name="i-lucide-loader-2" class="w-3.5 h-3.5 animate-spin text-primary-500" />
+    </span>
 
     <!-- Список оборудования (отсортирован по возрастанию device_id) -->
     <div class="flex items-center gap-1.5 flex-wrap">
@@ -113,14 +113,15 @@ const handleDeviceClick = (deviceId: number) => {
 
           <!-- Чекбокс / Статус -->
           <div
-:class="[
-            'w-4 h-4 rounded-md border flex items-center justify-center transition-colors',
-            deviceStatuses[device.device_id] === false
-              ? 'border-red-300 dark:border-red-800 bg-red-100 dark:bg-red-950 text-red-500'
-              : selectedDeviceIds.includes(device.device_id)
-                ? 'bg-primary-600 border-primary-600 text-white'
-                : 'border-neutral-300 dark:border-neutral-600 bg-white/80 dark:bg-neutral-800/80'
-          ]">
+            :class="[
+              'w-4 h-4 rounded-md border flex items-center justify-center transition-colors',
+              deviceStatuses[device.device_id] === false
+                ? 'border-red-300 dark:border-red-800 bg-red-100 dark:bg-red-950 text-red-500'
+                : selectedDeviceIds.includes(device.device_id)
+                  ? 'bg-primary-600 border-primary-600 text-white'
+                  : 'border-neutral-300 dark:border-neutral-600 bg-white/80 dark:bg-neutral-800/80'
+            ]"
+          >
             <UIcon
               v-if="deviceStatuses[device.device_id] === false"
               name="i-lucide-x"

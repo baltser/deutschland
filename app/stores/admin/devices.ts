@@ -1,4 +1,3 @@
-// stores/admin/devices.ts
 import { defineStore } from 'pinia'
 import { getErrorMessage } from '~/types/error'
 

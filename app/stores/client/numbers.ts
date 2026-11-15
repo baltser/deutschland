@@ -47,7 +47,7 @@ export const useClientNumbersStore = defineStore('clientNumbers', () => {
 
     timerInterval = setInterval(() => {
       now.value = Date.now()
-    }, 10000)
+    }, 60000)
   }
 
   startTimer()

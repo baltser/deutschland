@@ -4,6 +4,7 @@ import { callDeviceEndpoint } from '#server/utils/devices/device-api.ts'
 import { logger } from '#server/utils/logger'
 import type { Prisma, DeviceType} from '@prisma/client';
 import {detectDeviceVendor} from "#server/utils/devices/device-detector.ts";
+import {deviceQueue} from "#server/utils/devices/device-queue.ts";
 
 const log = logger.withTag('services:device')
 
@@ -156,34 +157,38 @@ export const deviceService = {
   },
 
   /** Пинг физического устройства (камеры/панели) через драйвер */
+  async  pingDevice(deviceId: number) {
+    const cacheKey = `ping_device_${deviceId}`
 
-  async pingDevice(deviceId: number) {
-    // 1. Автоматически определяем вендора (через Redis-кэш или зондирование)
-    const vendor = await detectDeviceVendor(deviceId)
+    // Оборачиваем всю логику пинга в наш хелпер с кэшем (например, на 30 секунд)
+    return await deviceQueue.run(cacheKey, async () => {
+      // 1. Автоматически определяем вендора (через Redis-кэш или зондирование)
+      const vendor = await detectDeviceVendor(deviceId)
 
-    // 2. Выбираем правильный эндпоинт в зависимости от вендора
-    let endpoint = 'cgi-bin__ping_cgi~action=status' // по умолчанию бевард
-    if (vendor === 'dahua') {
-      endpoint = 'cgi-bin__magicBox.cgi~action=getSystemInfo'
-    }
+      // 2. Выбираем правильный эндпоинт в зависимости от вендора
+      let endpoint = 'cgi-bin__ping_cgi~action=status' // по умолчанию бевард
+      if (vendor === 'dahua') {
+        endpoint = 'cgi-bin__magicBox.cgi~action=getSystemInfo'
+      }
 
-    const result = await callDeviceEndpoint(deviceId, endpoint)
+      const result = await callDeviceEndpoint(deviceId, endpoint)
 
-    if (result.status === null || result.status !== 200) {
-      log.warn(`Ошибка пинга устройства #${deviceId} (вендор: ${vendor})`, {
-        deviceId,
-        vendor,
-        status: result.status,
-        error: result.error,
-      })
-    } else {
-      log.info(`Успешный пинг устройства #${deviceId}. Вендор: ${vendor}`, { deviceId, vendor })
-    }
+      if (result.status === null || result.status !== 200) {
+        log.warn(`Ошибка пинга устройства #${deviceId} (вендор: ${vendor})`, {
+          deviceId,
+          vendor,
+          status: result.status,
+          error: result.error,
+        })
+      } else {
+        log.info(`Успешный пинг устройства #${deviceId}. Вендор: ${vendor}`, { deviceId, vendor })
+      }
 
-    // Возвращаем результат вместе с информацией о вендоре, если это полезно клиенту
-    return {
-      ...result,
-      vendor
-    }
+      // Возвращаем результат вместе с информацией о вендоре
+      return {
+        ...result,
+        vendor
+      }
+    })
   }
 }

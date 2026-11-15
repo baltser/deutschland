@@ -134,5 +134,23 @@ export const addressManagementService = {
     })
 
     return importedCount
+  },
+  
+  /** Удаление адреса и всех связанных данных */
+  async deleteAddress(addressId: number, adminUserId?: number) {
+    const address = await addressRepository.findById(addressId)
+    if (!address) {
+      throw createError({ statusCode: 404, message: 'Адрес не найден' })
+    }
+
+    try {
+      // Вызываем готовый метод репозитория
+      const deleted = await addressRepository.delete(addressId)
+      log.success(`Администратор ${adminUserId ? '#' + adminUserId : ''} удалил объект: "${address.address_name}" (ID: ${addressId})`)
+      return deleted
+    } catch (err: unknown) {
+      log.error(`Ошибка при удалении адреса #${addressId}:`, err)
+      throw createError({ statusCode: 500, message: 'Не удалось удалить объект и связанные данные' })
+    }
   }
 }

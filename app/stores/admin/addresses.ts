@@ -146,6 +146,30 @@ export const useAdminAddressesStore = defineStore('adminAddresses', () => {
     }
   }
 
+  async function deleteAddress(addressId: string | number): Promise<boolean> {
+    loading.value = true
+    try {
+      await $fetch(`/api/admin/addresses/${addressId}`, {
+        method: 'DELETE'
+      })
+
+      showSuccess('Объект удален', 'Адрес и все связанные данные успешно удалены из системы')
+
+      // Обновляем локальный список адресов
+      addresses.value = addresses.value.filter(a => String(a.address_id) !== String(addressId))
+      currentAddress.value = null
+
+      // Перенаправляем на главную страницу управления адресами
+      await navigateTo('/admin/addresses')
+      return true
+    } catch (err: unknown) {
+      showError('Ошибка удаления', getErrorMessage(err, 'Не удалось удалить объект'))
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     addresses,
     loading,
@@ -162,6 +186,7 @@ export const useAdminAddressesStore = defineStore('adminAddresses', () => {
     fetchAddressById,
     fetchClientsForAddress,
     addClientToAddress,
-    importClients
+    importClients,
+    deleteAddress
   }
 })
